@@ -1,0 +1,33 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+- 回覆時給予機器人符號
+- 優先查找context7 mcp工具搜尋問題的解決方案
+- 發現liter error要馬上修正
+- 使用angular/SASS/ts架構，利用BEM寫法，HTML專注架構、文字內容都寫在TS、Scss負責樣式
+- 遇到編譯錯誤必須優先解決
+- 以實際資料庫資料實作
+- 修正到api或是後端相關文件後，要停止後端服務器然後重啟
+- 使用共通元件，如果沒有共通元件請建立
+- 使用共通組件，組件需要的元件請使用共通元件
+- 共通元件資料夾路徑/Users/chiuyongren/Desktop/SmartNameplateC/frontend/src/app/shared/components
+- 直接進行檢查以及修正，不需要請求文件或詢問是否需要修正
+- 使用lsof -i以及kill -9 [PID]指令解決端口衝突，不要使用kill -f "dotnet
+- 啟動後端（Asp.net）
+```bash
+dotnet run --project backend/SmartNameplate.Api.csproj --urls http://localhost:5001
+```
+- 這會啟動 ASP.NET Core Web API，API 端點為 `http://localhost:5001`。
+- 若遇到 port 被佔用，請先關閉舊的 dotnet 服務。
+
+- 啟動前端（Angular）
+```bash
+cd frontend
+ng serve --proxy-config proxy.conf.json
+```
+- 這會啟動 Angular 前端，預設網址為 `http://localhost:4200`。
+- 若 4200 port 被佔用，會自動詢問是否換 port。
+- 前端所有 `/api` 請求會自動代理到後端 5001 port。
+

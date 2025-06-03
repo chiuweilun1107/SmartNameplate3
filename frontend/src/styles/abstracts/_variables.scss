@@ -1,0 +1,81 @@
+// Apple-inspired Color Palette
+$color-primary: #1d1d1f;           // Apple Dark Gray
+$color-secondary: #6e6e73;         // Apple Medium Gray  
+$color-accent: #007aff;            // Apple Blue
+$color-success: #30d158;           // Apple Green
+$color-warning: #ff9f0a;           // Apple Orange
+$color-danger: #ff453a;            // Apple Red
+$color-info: #64d2ff;              // Apple Light Blue
+
+// Background Colors (Apple Style)
+$bg-color-primary: #ffffff;        // Pure White
+$bg-color-secondary: #f5f5f7;      // Apple Light Gray
+$bg-color-dark: #1d1d1f;           // Apple Dark
+$bg-color-card: #ffffff;           // Card Background
+
+// Text Colors (Apple Style)
+$text-color-primary: #1d1d1f;      // Main Text
+$text-color-secondary: #6e6e73;    // Secondary Text
+$text-color-tertiary: #8e8e93;     // Tertiary Text
+$text-color-hint: #aeaeb2;         // Hint Text
+$text-color-light: #ffffff;        // Light Text
+$text-color-link: #007aff;         // Link Color
+
+// Apple-inspired Spacing
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 16px;
+$spacing-lg: 24px;
+$spacing-xl: 32px;
+$spacing-xxl: 48px;
+$spacing-3xl: 64px;
+$spacing-4xl: 80px;
+$spacing-5xl: 96px;
+
+// Apple Typography Scale
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-md: 16px;
+$font-size-lg: 19px;               // Apple Body Large
+$font-size-xl: 21px;               // Apple Title 3
+$font-size-xxl: 28px;              // Apple Title 2
+$font-size-3xl: 32px;              // Apple Title 1
+$font-size-4xl: 40px;              // Apple Large Title
+$font-size-5xl: 48px;              // Apple Display
+
+// Font Weights (Apple Style)
+$font-weight-light: 300;
+$font-weight-regular: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+
+// Apple-inspired Border Radius
+$border-radius-sm: 6px;
+$border-radius-md: 12px;
+$border-radius-lg: 18px;
+$border-radius-xl: 24px;
+
+// Apple-style Shadows
+$shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+$shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+$shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+$shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+
+// Apple-style Transitions
+$transition-quick: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-medium: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+$transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+
+// Responsive Breakpoints
+$breakpoint-xs: 480px;
+$breakpoint-sm: 768px;
+$breakpoint-md: 1024px;
+$breakpoint-lg: 1280px;
+$breakpoint-xl: 1440px;
+
+// Apple-style Z-index
+$z-index-header: 1000;
+$z-index-dropdown: 1010;
+$z-index-modal: 1020;
+$z-index-tooltip: 1030;

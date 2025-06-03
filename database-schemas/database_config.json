@@ -1,0 +1,30 @@
+{
+  "database": {
+    "providers": {
+      "postgresql": {
+        "description": "PostgreSQL 資料庫配置",
+        "connectionString": "Host=localhost;Database=smart_nameplate;Username=postgres;Password=password",
+        "features": [
+          "jsonb",
+          "arrays",
+          "full_text_search"
+        ]
+      },
+      "sqlserver": {
+        "description": "SQL Server 資料庫配置",
+        "connectionString": "Server=localhost;Database=SmartNameplateDB;Trusted_Connection=true;TrustServerCertificate=true;",
+        "features": [
+          "json_functions",
+          "full_text_search",
+          "spatial_data"
+        ]
+      }
+    },
+    "settings": {
+      "useNeon": false,
+      "useSqlServer": false,
+      "autoMigration": true,
+      "seedData": true
+    }
+  }
+}

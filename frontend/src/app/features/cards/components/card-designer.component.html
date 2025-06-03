@@ -1,0 +1,231 @@
+<!-- 卡片設計器界面 -->
+<div class="card-designer">
+  <!-- 頂部工具列 -->
+  <header class="card-designer__header">
+    <div class="card-designer__header-left">
+      <button class="card-designer__btn card-designer__btn--back" (click)="goBack()">
+        <mat-icon>arrow_back</mat-icon>
+        <span>返回</span>
+      </button>
+      <h1 class="card-designer__title">{{ cardName }}</h1>
+    </div>
+    
+    <div class="card-designer__header-center">
+      <!-- 面別切換 -->
+      <div class="card-designer__side-toggle">
+        <button 
+          class="card-designer__side-btn"
+          [class.card-designer__side-btn--active]="currentSide === 'A'"
+          (click)="switchSide('A')">
+          A面
+        </button>
+        <button 
+          class="card-designer__side-btn"
+          [class.card-designer__side-btn--active]="currentSide === 'B'"
+          (click)="switchSide('B')">
+          B面
+        </button>
+      </div>
+    </div>
+    
+    <div class="card-designer__header-right">
+      <button class="card-designer__btn card-designer__btn--save" (click)="saveCard()">
+        <mat-icon>save</mat-icon>
+        <span>儲存</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主要內容區域 -->
+  <div class="card-designer__main">
+    <!-- 左側工具面板 -->
+    <aside class="card-designer__sidebar">
+      <!-- 元素工具 -->
+      <div class="card-designer__tool-section">
+        <h3 class="card-designer__tool-title">元素工具</h3>
+        <div class="card-designer__tools">
+          <button class="card-designer__tool" (click)="addElement('text')" title="添加文字">
+            <mat-icon>text_fields</mat-icon>
+            <span>文字</span>
+          </button>
+          <button class="card-designer__tool" (click)="addElement('image')" title="添加圖片">
+            <mat-icon>image</mat-icon>
+            <span>圖片</span>
+          </button>
+          <button class="card-designer__tool" (click)="addElement('shape')" title="添加形狀">
+            <mat-icon>category</mat-icon>
+            <span>形狀</span>
+          </button>
+          <button class="card-designer__tool" (click)="addElement('qrcode')" title="添加QR碼">
+            <mat-icon>qr_code</mat-icon>
+            <span>QR碼</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 層級管理 -->
+      <div class="card-designer__tool-section">
+        <h3 class="card-designer__tool-title">層級管理</h3>
+        <div class="card-designer__layers">
+          <div *ngFor="let element of getElementsInZOrder(); trackBy: trackElement" 
+               class="card-designer__layer"
+               [class.card-designer__layer--selected]="selectedElementId === element.id"
+               (click)="selectElement(element.id)">
+            <mat-icon class="card-designer__layer-icon">{{ getElementIcon(element.type) }}</mat-icon>
+            <span class="card-designer__layer-name">{{ getElementDisplayName(element) }}</span>
+            <div class="card-designer__layer-actions">
+              <button class="card-designer__layer-btn" (click)="moveElementUp(element.id); $event.stopPropagation()" title="上移">
+                <mat-icon>keyboard_arrow_up</mat-icon>
+              </button>
+              <button class="card-designer__layer-btn" (click)="moveElementDown(element.id); $event.stopPropagation()" title="下移">
+                <mat-icon>keyboard_arrow_down</mat-icon>
+              </button>
+              <button class="card-designer__layer-btn" (click)="deleteElement(element.id); $event.stopPropagation()" title="刪除">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 文字標籤配置 -->
+      <div class="card-designer__tool-section" *ngIf="hasTextElements()">
+        <h3 class="card-designer__tool-title">
+          文字標籤配置
+          <button class="card-designer__btn card-designer__btn--small" 
+                  (click)="showTagConfigModal = true">
+            <mat-icon>settings</mat-icon>
+          </button>
+        </h3>
+        <div class="card-designer__tag-config">
+          <div *ngFor="let element of getTextElementsWithTags()" 
+               class="card-designer__tag-item">
+            <div class="card-designer__tag-info">
+              <span class="card-designer__tag-element">{{ getElementDisplayName(element) }}</span>
+              <span class="card-designer__tag-type" 
+                    *ngIf="element.style?.tag"
+                    [ngClass]="'card-designer__tag-type--' + element.style.tag">
+                <mat-icon>{{ getTagIcon(element.style.tag) }}</mat-icon>
+                {{ getTagLabel(element.style.tag) }}
+              </span>
+              <span class="card-designer__tag-none" *ngIf="!element.style?.tag">
+                未設定標籤
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 畫布區域 -->
+    <main class="card-designer__canvas-area">
+      <!-- 畫布容器 -->
+      <div class="card-designer__canvas-container" 
+           [style.background]="getCanvasBackground()"
+           (click)="deselectAll()"
+           (mousedown)="onCanvasMouseDown($event)"
+           (mousemove)="onCanvasMouseMove($event)"
+           (mouseup)="onCanvasMouseUp($event)"
+           #canvasContainer>
+        
+        <!-- 背景圖片 -->
+        <div class="card-designer__background" 
+             *ngIf="getCurrentCard()?.background_image"
+             [style.backgroundImage]="'url(' + getCurrentCard()?.background_image + ')'"
+             [style.backgroundSize]="'cover'"
+             [style.backgroundPosition]="'center'"
+             [style.backgroundRepeat]="'no-repeat'">
+        </div>
+
+        <!-- 畫布網格 -->
+        <div class="card-designer__grid" 
+             [class.card-designer__grid--visible]="showGrid">
+        </div>
+
+        <!-- 可拖拽元素 -->
+        <sn-draggable-element
+          *ngFor="let element of getCurrentElements(); trackBy: trackElement"
+          [element]="element"
+          [isSelected]="selectedElementId === element.id"
+          [scale]="canvasScale"
+          [gridSize]="gridSize"
+          [snapToGrid]="snapToGrid"
+          (elementChange)="onElementChange($event)"
+          (elementSelect)="selectElement($event)"
+          (elementDelete)="deleteElement($event)"
+          (positionChange)="onElementPositionChange($event)"
+          (sizeChange)="onElementSizeChange($event)">
+        </sn-draggable-element>
+
+        <!-- 選框工具 -->
+        <div *ngIf="isSelecting" 
+             class="card-designer__selection-box"
+             [style.left.px]="selectionBox.x"
+             [style.top.px]="selectionBox.y"
+             [style.width.px]="selectionBox.width"
+             [style.height.px]="selectionBox.height">
+        </div>
+      </div>
+
+      <!-- 畫布底部工具列 -->
+      <div class="card-designer__canvas-footer">
+        <div class="card-designer__canvas-controls">
+          <!-- 縮放控制 -->
+          <div class="card-designer__zoom-controls">
+            <button class="card-designer__zoom-btn" (click)="zoomOut()" [disabled]="canvasScale <= 0.5">
+              <mat-icon>zoom_out</mat-icon>
+            </button>
+            <span class="card-designer__zoom-level">{{ (canvasScale * 100).toFixed(0) }}%</span>
+            <button class="card-designer__zoom-btn" (click)="zoomIn()" [disabled]="canvasScale >= 2">
+              <mat-icon>zoom_in</mat-icon>
+            </button>
+            <button class="card-designer__zoom-btn" (click)="resetZoom()">
+              <mat-icon>zoom_out_map</mat-icon>
+            </button>
+          </div>
+
+          <!-- 畫布選項 -->
+          <div class="card-designer__canvas-options">
+            <label class="card-designer__option">
+              <input type="checkbox" [(ngModel)]="showGrid" />
+              <span>顯示網格</span>
+            </label>
+            <label class="card-designer__option">
+              <input type="checkbox" [(ngModel)]="snapToGrid" />
+              <span>對齊網格</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- 文字編輯工具列 -->
+<sn-element-edit-toolbar
+  *ngIf="showTextToolbar"
+  [position]="textToolbarPosition"
+  [elementType]="selectedElement?.type"
+  [currentTextStyle]="getSelectedTextStyle()"
+  [targetElement]="selectedElementRef"
+  [shapeType]="getSelectedShapeType()"
+  (styleChange)="onTextStyleChange($event)"
+  (action)="onToolbarAction($event)"
+  (close)="closeTextToolbar()">
+</sn-element-edit-toolbar>
+
+<!-- 標籤配置模態框 -->
+<div *ngIf="showTagConfigModal" class="card-designer__modal-overlay" (click)="showTagConfigModal = false">
+  <div class="card-designer__modal" (click)="$event.stopPropagation()">
+    <header class="card-designer__modal-header">
+      <h2>文字標籤配置</h2>
+      <button class="card-designer__modal-close" (click)="showTagConfigModal = false">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+    <div class="card-designer__modal-content">
+      <p>這裡將來可以配置文字元素的標籤映射關係</p>
+      <p>例如：將某個文字框設定為「姓名」標籤，另一個設定為「職稱」標籤</p>
+    </div>
+  </div>
+</div> 

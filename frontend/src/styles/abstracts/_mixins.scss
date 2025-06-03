@@ -1,0 +1,126 @@
+// Apple-inspired Mixins
+
+// Responsive Design Mixins
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == xs {
+    @media (max-width: $breakpoint-xs) { @content; }
+  } @else if $breakpoint == sm {
+    @media (max-width: $breakpoint-sm) { @content; }
+  } @else if $breakpoint == md {
+    @media (max-width: $breakpoint-md) { @content; }
+  } @else if $breakpoint == lg {
+    @media (max-width: $breakpoint-lg) { @content; }
+  } @else if $breakpoint == xl {
+    @media (max-width: $breakpoint-xl) { @content; }
+  }
+}
+
+// Typography Mixin (Apple Style)
+@mixin typography($size, $weight: $font-weight-regular, $line-height: 1.4) {
+  font-size: $size;
+  font-weight: $weight;
+  line-height: $line-height;
+  letter-spacing: -0.01em; // Apple's subtle letter spacing
+}
+
+// Flex Layout Mixins
+@mixin flex($direction: row, $justify: flex-start, $align: stretch, $wrap: nowrap) {
+  display: flex;
+  flex-direction: $direction;
+  justify-content: $justify;
+  align-items: $align;
+  flex-wrap: $wrap;
+}
+
+// Center Content
+@mixin center-vertical {
+  display: flex;
+  align-items: center;
+}
+
+@mixin center-horizontal {
+  display: flex;
+  justify-content: center;
+}
+
+@mixin center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+// Apple-style Button Mixin
+@mixin button-apple($bg-color, $text-color: white, $hover-transform: true) {
+  background: $bg-color;
+  color: $text-color;
+  border: none;
+  border-radius: $border-radius-lg;
+  padding: $spacing-sm $spacing-lg;
+  @include typography($font-size-md, $font-weight-medium);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  cursor: pointer;
+  transition: $transition-medium;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  @if $hover-transform {
+    &:hover {
+      background: darken($bg-color, 5%);
+      transform: translateY(-2px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  } @else {
+    &:hover {
+      background: darken($bg-color, 5%);
+    }
+  }
+}
+
+// Apple Card Mixin
+@mixin card-apple($padding: $spacing-xl, $hover-effect: true) {
+  background: white;
+  border-radius: $border-radius-xl;
+  padding: $padding;
+  box-shadow: $shadow-sm;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: $transition-medium;
+
+  @if $hover-effect {
+    &:hover {
+      transform: translateY(-4px);
+    }
+  }
+}
+
+// Glass Effect Mixin (like Apple's frosted glass)
+@mixin glass-effect($opacity: 0.9) {
+  background: rgba(255, 255, 255, $opacity);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+// Text Truncation
+@mixin truncate($lines: 1) {
+  @if $lines == 1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+// Apple-style Focus Ring
+@mixin focus-ring($color: $color-accent) {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba($color, 0.2);
+}

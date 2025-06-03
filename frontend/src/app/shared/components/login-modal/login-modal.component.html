@@ -1,0 +1,118 @@
+<div class="login-modal" *ngIf="isVisible" (click)="onBackdropClick($event)">
+  <div class="login-modal__container" (click)="$event.stopPropagation()">
+    <header class="login-modal__header">
+      <h2 class="login-modal__title">用戶登入</h2>
+      <button 
+        class="login-modal__close-btn" 
+        (click)="closeModal()"
+        aria-label="關閉">
+        <mat-icon>close</mat-icon>
+      </button>
+    </header>
+
+    <form class="login-form" (ngSubmit)="onSubmit()" #loginForm="ngForm">
+      <div class="login-form__group">
+        <label for="username" class="login-form__label">用戶名</label>
+        <input
+          id="username"
+          type="text"
+          class="login-form__input"
+          [(ngModel)]="loginData.username"
+          name="username"
+          required
+          autocomplete="username"
+          [disabled]="isLoading"
+          placeholder="請輸入用戶名">
+      </div>
+
+      <div class="login-form__group">
+        <label for="password" class="login-form__label">密碼</label>
+        <div class="login-form__password-wrapper">
+          <input
+            id="password"
+            [type]="showPassword ? 'text' : 'password'"
+            class="login-form__input"
+            [(ngModel)]="loginData.password"
+            name="password"
+            required
+            autocomplete="current-password"
+            [disabled]="isLoading"
+            placeholder="請輸入密碼">
+          <button
+            type="button"
+            class="login-form__toggle-password"
+            (click)="togglePasswordVisibility()"
+            [disabled]="isLoading">
+            <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <div class="login-form__actions">
+        <button
+          type="button"
+          class="login-form__btn login-form__btn--secondary"
+          (click)="closeModal()"
+          [disabled]="isLoading">
+          取消
+        </button>
+        <button
+          type="submit"
+          class="login-form__btn login-form__btn--primary"
+          [disabled]="isLoading || !loginForm.valid">
+          <span *ngIf="!isLoading">登入</span>
+          <span *ngIf="isLoading" class="login-form__loading">
+            <mat-icon class="login-form__spinner">refresh</mat-icon>
+            登入中...
+          </span>
+        </button>
+      </div>
+
+      <div *ngIf="errorMessage" class="login-form__error">
+        <mat-icon>error</mat-icon>
+        {{ errorMessage }}
+      </div>
+    </form>
+
+    <!-- 測試用戶資訊 -->
+    <div class="login-modal__test-users" *ngIf="showTestUsers">
+      <h3>測試用戶</h3>
+      <div class="test-users-grid">
+        <div class="test-user" (click)="fillTestUser('hamaadmin', 'hamaadmin*')">
+          <strong>超級管理員</strong><br>
+          hamaadmin / hamaadmin*
+        </div>
+        <div class="test-user" (click)="fillTestUser('managera', 'managera*')">
+          <strong>組織管理者A</strong><br>
+          managera / managera*
+        </div>
+        <div class="test-user" (click)="fillTestUser('managerb', 'managerb*')">
+          <strong>組織管理者B</strong><br>
+          managerb / managerb*
+        </div>
+        <div class="test-user" (click)="fillTestUser('usera', 'usera*')">
+          <strong>一般用戶A</strong><br>
+          usera / usera*
+        </div>
+        <div class="test-user" (click)="fillTestUser('userb', 'userb*')">
+          <strong>一般用戶B</strong><br>
+          userb / userb*
+        </div>
+      </div>
+      <button 
+        type="button" 
+        class="toggle-test-users-btn"
+        (click)="showTestUsers = false">
+        隱藏測試用戶
+      </button>
+    </div>
+
+    <button 
+      *ngIf="!showTestUsers"
+      type="button" 
+      class="toggle-test-users-btn"
+      (click)="showTestUsers = true">
+      顯示測試用戶
+    </button>
+  </div>
+</div> 

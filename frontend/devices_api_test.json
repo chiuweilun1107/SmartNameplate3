@@ -1,0 +1,30 @@
+[
+  {
+    "id": 24,
+    "name": "PH6",
+    "bluetoothAddress": "FD:63:E3:C2:A7:A9",
+    "originalAddress": null,
+    "status": "Connected",
+    "currentCardId": 7,
+    "currentCardName": "新圖卡",
+    "groupId": null,
+    "groupName": null,
+    "lastConnected": "2025-05-27T22:09:15.769086Z",
+    "createdAt": "2025-05-27T22:09:15.769167Z",
+    "updatedAt": "2025-05-27T23:49:17.431372Z"
+  },
+  {
+    "id": 25,
+    "name": "PH6",
+    "bluetoothAddress": "94:BD:BE:76:5E:AC",
+    "originalAddress": null,
+    "status": "Connected",
+    "currentCardId": 5,
+    "currentCardName": "姓名牌",
+    "groupId": null,
+    "groupName": null,
+    "lastConnected": "2025-05-27T22:09:15.769101Z",
+    "createdAt": "2025-05-27T22:09:15.769173Z",
+    "updatedAt": "2025-05-27T23:49:22.738306Z"
+  }
+]

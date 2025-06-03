@@ -1,0 +1,212 @@
+@import '../../../../styles/abstracts/variables';
+@import '../../../../styles/abstracts/mixins';
+
+// 主工具列容器
+.element-toolbar {
+  position: fixed;
+  z-index: 1000;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: $border-radius-xl;
+  padding: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  transform: translateX(-50%);
+  margin-top: -20px;
+  height: 50px; // 固定高度
+  box-sizing: border-box;
+
+  &__content {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 100%;
+    width: 100%;
+  }
+}
+
+// 限制作用域到當前組件
+:host {
+  // 工具列按鈕群組樣式
+  ::ng-deep .toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+
+  // 工具列分隔線樣式
+  ::ng-deep .toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.1);
+    margin: 0 4px;
+  }
+
+  // 工具列按鈕樣式 - 使用更強的選擇器覆蓋 Material 預設樣式
+  ::ng-deep .element-toolbar .text-format-btn,
+  ::ng-deep .element-toolbar .mat-mdc-icon-button,
+  ::ng-deep .element-toolbar button.mat-mdc-icon-button,
+  ::ng-deep .element-toolbar .mat-mdc-button {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 6px !important;
+    border-radius: $border-radius-md !important;
+    transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+
+    // 覆蓋 Material 預設的 hover 樣式
+    &:hover {
+      background-color: rgba(0, 122, 255, 0.1) !important;
+    }
+
+    // 覆蓋 Material 預設的 ripple 效果
+    .mat-ripple-element {
+      display: none !important;
+    }
+
+    // 覆蓋 Material 預設的狀態層
+    .mat-mdc-button-persistent-ripple,
+    .mdc-button__ripple {
+      display: none !important;
+    }
+  }
+
+  // 確保懸停樣式優先級最高
+  ::ng-deep .element-toolbar .text-format-btn:hover,
+  ::ng-deep .element-toolbar .mat-mdc-icon-button:hover,
+  ::ng-deep .element-toolbar button.mat-mdc-icon-button:hover,
+  ::ng-deep .element-toolbar .mat-mdc-button:hover {
+    background-color: rgba(0, 122, 255, 0.1) !important;
+  }
+
+  ::ng-deep .element-toolbar .text-format-btn.active,
+  ::ng-deep .element-toolbar .mat-mdc-icon-button.active,
+  ::ng-deep .element-toolbar button.mat-mdc-icon-button.active,
+  ::ng-deep .element-toolbar .mat-mdc-button.active {
+    background-color: #007aff !important;
+    color: white !important;
+  }
+
+  ::ng-deep .element-toolbar .text-format-btn.active .mat-icon,
+  ::ng-deep .element-toolbar .mat-mdc-icon-button.active .mat-icon,
+  ::ng-deep .element-toolbar button.mat-mdc-icon-button.active .mat-icon,
+  ::ng-deep .element-toolbar .mat-mdc-button.active .mat-icon {
+    color: white !important;
+  }
+
+  // 刪除按鈕特殊樣式
+  ::ng-deep .element-toolbar .text-format-btn.delete-button:hover,
+  ::ng-deep .element-toolbar .mat-mdc-icon-button.delete-button:hover,
+  ::ng-deep .element-toolbar button.mat-mdc-icon-button.delete-button:hover,
+  ::ng-deep .element-toolbar .mat-mdc-button.delete-button:hover {
+    background-color: rgba(255, 68, 68, 0.1) !important;
+  }
+
+  ::ng-deep .element-toolbar .text-format-btn.delete-button:hover .mat-icon,
+  ::ng-deep .element-toolbar .mat-mdc-icon-button.delete-button:hover .mat-icon,
+  ::ng-deep .element-toolbar button.mat-mdc-icon-button.delete-button:hover .mat-icon,
+  ::ng-deep .element-toolbar .mat-mdc-button.delete-button:hover .mat-icon {
+    color: #ff4444 !important;
+  }
+
+  ::ng-deep .element-toolbar .mat-icon {
+    font-size: 18px !important;
+    width: 18px !important;
+    height: 18px !important;
+    line-height: 18px !important;
+    color: #6e6e73;
+    display: block !important;
+  }
+
+  ::ng-deep .mat-icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Material 覆蓋樣式 - 限制作用域
+:host {
+  ::ng-deep .mat-mdc-menu-panel {
+    border-radius: $border-radius-lg !important;
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  ::ng-deep .mat-mdc-menu-item {
+    border-radius: $border-radius-md;
+    margin: 4px 8px;
+    transition: all 0.2s ease;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  ::ng-deep .mat-mdc-menu-item:hover {
+    background-color: rgba(0, 122, 255, 0.1) !important;
+    transform: translateX(4px);
+  }
+
+  ::ng-deep .mat-mdc-menu-item.selected {
+    background-color: rgba(0, 122, 255, 0.2) !important;
+    color: #007aff;
+    font-weight: $font-weight-semibold;
+  }
+
+  ::ng-deep .mat-mdc-tooltip {
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: white !important;
+    border-radius: $border-radius-md !important;
+    backdrop-filter: blur(10px);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-medium;
+  }
+}
+
+// 確保工具列不會被其他元素覆蓋
+.element-toolbar {
+  pointer-events: auto !important;
+}
+
+// 額外的 Material 樣式覆蓋 - 全域但針對性
+::ng-deep .element-toolbar {
+  // 禁用所有 Material 預設的狀態層和 ripple 效果
+  .mat-mdc-button-base,
+  .mat-mdc-icon-button,
+  .mat-mdc-button {
+    // 禁用 Material 的狀態層
+    .mat-mdc-button-persistent-ripple::before,
+    .mat-mdc-button-persistent-ripple::after,
+    .mdc-button__ripple::before,
+    .mdc-button__ripple::after {
+      display: none !important;
+    }
+
+    // 禁用 focus 和 hover 的預設樣式
+    &:focus,
+    &:hover {
+      .mat-mdc-button-persistent-ripple::before,
+      .mat-mdc-button-persistent-ripple::after,
+      .mdc-button__ripple::before,
+      .mdc-button__ripple::after {
+        opacity: 0 !important;
+        display: none !important;
+      }
+    }
+
+    // 確保我們的自定義樣式優先
+    &:hover {
+      background-color: rgba(0, 122, 255, 0.1) !important;
+    }
+
+    &.delete-button:hover {
+      background-color: rgba(255, 68, 68, 0.1) !important;
+    }
+  }
+}

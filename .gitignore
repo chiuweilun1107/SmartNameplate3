@@ -1,0 +1,172 @@
+# 🛡️ SmartNameplate 安全 .gitignore 配置
+
+# ====================
+# 敏感檔案和資料夾
+# ====================
+
+# 環境變數檔案
+*.env
+*.env.local
+*.env.production
+*.env.staging
+.env.*
+
+# 配置檔案中的敏感資訊
+appsettings.Production.json
+appsettings.Staging.json
+**/appsettings.*.json
+!**/appsettings.Development.json
+
+# 密鑰和憑證
+*.key
+*.pem
+*.p12
+*.pfx
+*.crt
+*.cer
+secrets.json
+secrets.*.json
+
+# ====================
+# 開發環境
+# ====================
+
+# Python 虛擬環境
+.venv/
+venv/
+ENV/
+env/
+.env/
+.python-version
+
+# Python 快取
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# ====================
+# 前端開發
+# ====================
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# 建置輸出
+dist/
+build/
+.next/
+out/
+
+# Angular
+.angular/
+.angular/cache/
+
+# ====================
+# 後端開發
+# ====================
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.docstates
+*.dll
+*.exe
+*.pdb
+*.vshost.*
+*.log
+*.tmp
+*.temp
+
+# Visual Studio
+.vs/
+.vscode/settings.json
+.vscode/launch.json
+
+# ====================
+# 資料庫和日誌
+# ====================
+
+# 資料庫檔案
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+
+# 日誌檔案
+logs/
+*.log
+*.log.*
+LogFiles/
+
+# ====================
+# 系統檔案
+# ====================
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ====================
+# 測試和覆蓋率
+# ====================
+
+# 測試結果
+TestResults/
+*.trx
+*.coverage
+*.coveragexml
+
+# ====================
+# 工具和快取
+# ====================
+
+# JetBrains
+.idea/
+
+# SonarQube
+.sonarqube/
+
+# 暫存檔案
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# ====================
+# 專案特定檔案
+# ====================
+
+# 縮圖和暫存圖片
+thumbnails/
+temp_images/
+uploads/temp/
+
+# 部署相關
+publish/
+*.zip
+*.tar.gz
+
+# 開發工具產生的檔案
+*.orig
+.DS_Store
+.vscode/
+.idea/ 

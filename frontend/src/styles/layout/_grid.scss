@@ -1,0 +1,26 @@
+// Grid system
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 $spacing-md;
+}
+
+.row {
+  @include flex(row, flex-start, stretch, wrap);
+  margin: 0 (-$spacing-sm);
+}
+
+.col {
+  flex: 1;
+  padding: 0 $spacing-sm;
+}
+
+// Grid utilities
+.grid {
+  display: grid;
+  gap: $spacing-md;
+}
+
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }

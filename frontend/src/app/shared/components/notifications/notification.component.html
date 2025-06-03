@@ -1,0 +1,47 @@
+<div class="notification-container">
+  <div 
+    *ngFor="let notification of notifications; trackBy: trackById" 
+    class="notification"
+    [ngClass]="'notification--' + notification.type">
+    
+    <!-- 不顯示 ICON -->
+    
+    <div class="notification__content">
+      <div class="notification__title">{{ notification.title }}</div>
+      <div *ngIf="notification.message" class="notification__message">
+        {{ notification.message }}
+      </div>
+      
+      <!-- 進度條 -->
+      <div *ngIf="notification.showProgress && notification.type === 'loading'" class="notification__progress">
+        <div class="notification__progress-bar">
+          <div 
+            class="notification__progress-fill"
+            [style.width.%]="notification.progress || 0">
+          </div>
+        </div>
+        <div class="notification__progress-text">
+          {{ (notification.progress || 0) | number:'1.0-0' }}%
+        </div>
+      </div>
+    </div>
+    
+    <!-- 確認對話框按鈕 -->
+    <div *ngIf="notification.type === 'confirm'" class="notification__actions">
+      <button class="notification__btn notification__btn--cancel" (click)="cancel(notification)">
+        {{ text.buttons.cancel }}
+      </button>
+      <button class="notification__btn notification__btn--confirm" (click)="confirm(notification)">
+        {{ text.buttons.confirm }}
+      </button>
+    </div>
+    
+    <!-- 一般關閉按鈕 -->
+    <button 
+      *ngIf="notification.type !== 'loading' && notification.type !== 'confirm'"
+      class="notification__close"
+      (click)="remove(notification.id)">
+      ×
+    </button>
+  </div>
+</div> 

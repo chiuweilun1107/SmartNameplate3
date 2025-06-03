@@ -1,0 +1,22 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 筆電主體 -->
+  <rect x="14" y="32" width="36" height="14" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+  <rect x="10" y="46" width="44" height="6" rx="2" stroke="currentColor" stroke-width="2" fill="none"/>
+  <line x1="18" y1="46" x2="46" y2="46" stroke="currentColor" stroke-width="1.5"/>
+  <!-- 右上角圖片 icon -->
+  <rect x="44" y="8" width="12" height="10" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/>
+  <circle cx="48" cy="12" r="1.5" fill="currentColor"/>
+  <polyline points="46,16 49,13 52,16 54,14 55,16" stroke="currentColor" stroke-width="1" fill="none"/>
+  <!-- 左上角卡牌 icon -->
+  <rect x="8" y="10" width="12" height="8" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/>
+  <rect x="10" y="12" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1" fill="none"/>
+  <line x1="16" y1="16" x2="18" y2="16" stroke="currentColor" stroke-width="1"/>
+  <!-- 最上方新圖卡 icon -->
+  <rect x="26" y="4" width="12" height="8" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/>
+  <rect x="28" y="6" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1" fill="none"/>
+  <line x1="34" y1="10" x2="36" y2="10" stroke="currentColor" stroke-width="1"/>
+  <!-- 連接線 -->
+  <line x1="50" y1="18" x2="44" y2="32" stroke="currentColor" stroke-width="1.2"/>
+  <line x1="14" y1="18" x2="20" y2="32" stroke="currentColor" stroke-width="1.2"/>
+  <line x1="32" y1="12" x2="32" y2="32" stroke="currentColor" stroke-width="1.2"/>
+</svg>

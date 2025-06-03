@@ -1,0 +1,520 @@
+@import '../../../styles/abstracts/variables';
+@import '../../../styles/abstracts/mixins';
+
+// Animation keyframes
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate(5deg);
+  }
+}
+
+.home {
+  background: $bg-color-primary;
+  min-height: calc(100vh - 48px);
+
+  // Hero Carousel Section - 完全延伸到視窗邊緣
+  &__hero-carousel {
+    position: relative;
+    overflow: hidden;
+    background: #f6f6f6;
+    width: 100vw; // 完全延伸到視窗邊緣
+    margin-left: calc(-50vw + 50%); // 突破容器限制，讓背景延伸
+  }
+
+  &__carousel-container {
+    position: relative;
+    width: 100vw; // 完全延伸的容器
+  }
+
+  &__carousel-wrapper {
+    overflow: hidden;
+    width: 100%;
+  }
+
+  &__carousel-track {
+    display: flex;
+    will-change: transform;
+    // transition 和 transform 現在由 JavaScript 控制
+  }
+
+  &__carousel-slide {
+    flex: 0 0 100%;
+    width: 100%;
+    
+    // 不同主題的背景變化
+    &--default {
+      background: linear-gradient(135deg, #f6f6f6 0%, #e9e9e9 100%);
+      
+      .home__cta-primary {
+        background: $color-accent;
+        
+        &:hover {
+          background: darken($color-accent, 5%);
+        }
+      }
+      
+      .home__cta-secondary {
+        color: $color-accent;
+        border-color: $color-accent;
+        
+        &:hover {
+          background: $color-accent;
+          color: white;
+        }
+      }
+    }
+    
+    &--design {
+      background: linear-gradient(135deg, #e8f4ff 0%, #d6e8ff 100%);
+      
+      .home__cta-primary {
+        background: #4a7bff;
+        
+        &:hover {
+          background: darken(#4a7bff, 5%);
+        }
+      }
+      
+      .home__cta-secondary {
+        color: #4a7bff;
+        border-color: #4a7bff;
+        
+        &:hover {
+          background: #4a7bff;
+          color: white;
+        }
+      }
+      
+      .home__hero-title {
+        color: #2c4c8c;
+      }
+    }
+    
+    &--manage {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e1f2fd 100%);
+      
+      .home__cta-primary {
+        background: #00a7e1;
+        
+        &:hover {
+          background: darken(#00a7e1, 5%);
+        }
+      }
+      
+      .home__cta-secondary {
+        color: #00a7e1;
+        border-color: #00a7e1;
+        
+        &:hover {
+          background: #00a7e1;
+          color: white;
+        }
+      }
+      
+      .home__hero-title {
+        color: #005f80;
+      }
+    }
+  }
+
+  // 原本的 hero 容器樣式，但在輪播內部
+  &__hero-container {
+    max-width: 1200px; // 保持內容的最大寬度
+    margin: 0 auto;
+    padding: $spacing-5xl $spacing-lg $spacing-4xl;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+    gap: $spacing-4xl;
+
+    @include respond-to(md) {
+      grid-template-columns: 1fr;
+      text-align: center;
+      gap: $spacing-xl;
+      padding: $spacing-4xl $spacing-lg $spacing-3xl;
+    }
+  }
+  
+  &__hero-content {
+    @include respond-to(md) {
+      order: 1;
+    }
+  }
+
+  &__hero-title {
+    @include typography($font-size-5xl, $font-weight-bold);
+    color: $text-color-primary;
+    margin: 0 0 $spacing-md 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.02em;
+
+    @include respond-to(md) {
+      @include typography($font-size-4xl, $font-weight-bold);
+    }
+  }
+
+  &__hero-subtitle {
+    @include typography($font-size-xl, $font-weight-semibold);
+    color: $text-color-primary;
+    margin: 0 0 $spacing-sm 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+    @include respond-to(md) {
+      @include typography($font-size-lg, $font-weight-semibold);
+    }
+  }
+
+  &__hero-description {
+    @include typography($font-size-md, $font-weight-regular);
+    color: $text-color-secondary;
+    margin: 0 0 $spacing-xl 0;
+    line-height: 1.6;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+    @include respond-to(md) {
+      margin-bottom: $spacing-lg;
+    }
+  }
+
+  &__hero-actions {
+    @include flex(row, flex-start, center);
+    gap: $spacing-md;
+
+    @include respond-to(md) {
+      justify-content: center;
+    }
+
+    @include respond-to(sm) {
+      flex-direction: column;
+      align-items: stretch;
+      max-width: 300px;
+      margin: 0 auto;
+    }
+  }
+
+  &__hero-visual {
+    @include flex(row, center, center);
+    min-height: 500px;
+    position: relative;
+
+    @include respond-to(md) {
+      order: 0;
+      min-height: 400px;
+    }
+
+    @include respond-to(sm) {
+      min-height: 300px;
+    }
+  }
+
+  &__hero-image {
+    width: 100%;
+    height: auto;
+    max-width: 700px;
+    object-fit: contain;
+
+    @include respond-to(lg) {
+      max-width: 600px;
+    }
+
+    @include respond-to(md) {
+      max-width: 500px;
+    }
+
+    @include respond-to(sm) {
+      max-width: 100%;
+    }
+  }
+
+  // CTA Buttons
+  &__cta-primary {
+    background: $color-accent;
+    color: white;
+    border: none;
+    padding: $spacing-md $spacing-xl;
+    border-radius: $border-radius-lg;
+    @include typography($font-size-md, $font-weight-medium);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    cursor: pointer;
+    transition: $transition-medium;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: darken($color-accent, 5%);
+      transform: translateY(-2px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  &__cta-secondary {
+    background: transparent;
+    color: $color-accent;
+    border: 2px solid $color-accent;
+    padding: calc(#{$spacing-md} - 2px) calc(#{$spacing-xl} - 2px);
+    border-radius: $border-radius-lg;
+    @include typography($font-size-md, $font-weight-medium);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    cursor: pointer;
+    transition: $transition-medium;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background: $color-accent;
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    &:active {
+      transform: translateY(0);
+    }
+  }
+
+  // 修正後的輪播導航 - 移到畫面兩側，不擋文字
+  &__carousel-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    background: rgba(white, 0.95);
+    border: none;
+    border-radius: 50%;
+    @include flex(row, center, center);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+
+    &:hover {
+      background: white;
+      transform: translateY(-50%) scale(1.05);
+    }
+
+    &:active {
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    svg {
+      width: 22px;
+      height: 22px;
+      color: $text-color-primary;
+    }
+
+    // 左箭頭 - 定位在內容區域外側
+    &--prev {
+      left: 20px; // 離左邊緣20px
+      
+      // 大屏幕時移到內容區域外側
+      @media (min-width: 1280px) {
+        left: calc((100vw - 1200px) / 2 - 70px);
+      }
+      
+      @include respond-to(md) {
+        left: 16px;
+      }
+      
+      @include respond-to(sm) {
+        left: 12px;
+        width: 44px;
+        height: 44px;
+        
+        svg {
+          width: 18px;
+          height: 18px;
+        }
+      }
+    }
+
+    // 右箭頭 - 定位在內容區域外側
+    &--next {
+      right: 20px; // 離右邊緣20px
+      
+      // 大屏幕時移到內容區域外側
+      @media (min-width: 1280px) {
+        right: calc((100vw - 1200px) / 2 - 70px);
+      }
+      
+      @include respond-to(md) {
+        right: 16px;
+      }
+      
+      @include respond-to(sm) {
+        right: 12px;
+        width: 44px;
+        height: 44px;
+        
+        svg {
+          width: 18px;
+          height: 18px;
+        }
+      }
+    }
+  }
+
+  // 輪播指示器
+  &__carousel-indicators {
+    position: absolute;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    @include flex(row, center, center);
+    gap: 8px;
+    z-index: 10;
+
+    @include respond-to(sm) {
+      bottom: 20px;
+      gap: 6px;
+    }
+  }
+
+  &__carousel-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(white, 0.6);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 0;
+
+    &:hover {
+      background: rgba(white, 0.8);
+      transform: scale(1.2);
+    }
+
+    &.active {
+      background: white;
+      transform: scale(1.3);
+    }
+
+    @include respond-to(sm) {
+      width: 8px;
+      height: 8px;
+    }
+  }
+
+  // Features Section - 保持原有樣式
+  &__features {
+    padding: $spacing-5xl $spacing-lg;
+    background: white;
+
+    @include respond-to(md) {
+      padding: $spacing-4xl $spacing-lg;
+    }
+  }
+
+  &__features-container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  &__features-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: $spacing-xl;
+
+    // 平板模式：一行兩欄
+    @include respond-to(md) {
+      grid-template-columns: repeat(2, 1fr);
+      gap: $spacing-lg;
+    }
+
+    // 手機模式：一行一欄
+    @include respond-to(sm) {
+      grid-template-columns: 1fr;
+      gap: $spacing-md;
+    }
+  }
+
+  &__feature-card {
+    background: white;
+    border-radius: $border-radius-lg;
+    padding: $spacing-xl;
+    transition: $transition-medium;
+    border: 1px solid rgba($color-primary, 0.1);
+
+    &:hover {
+      transform: translateY(-4px);
+      border-color: rgba($color-primary, 0.2);
+    }
+
+    @include respond-to(md) {
+      padding: $spacing-lg;
+    }
+  }
+
+  &__feature-content {
+    text-align: center;
+  }
+
+  &__feature-icon {
+    @include flex(row, center, center);
+    width: 64px;
+    height: 64px;
+    margin: 0 auto $spacing-lg;
+    border-radius: $border-radius-lg;
+    
+    &--design {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    &--groups {
+      background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    }
+    
+    &--admin {
+      background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+    }
+  }
+
+  &__feature-icon-image {
+    width: 32px;
+    height: 32px;
+    filter: brightness(0) invert(1);
+  }
+
+  &__feature-title {
+    @include typography($font-size-xl, $font-weight-semibold);
+    color: $text-color-primary;
+    margin: 0 0 $spacing-sm 0;
+  }
+
+  &__feature-description {
+    @include typography($font-size-sm, $font-weight-regular);
+    color: $text-color-secondary;
+    margin: 0 0 $spacing-lg 0;
+    line-height: 1.6;
+  }
+
+  &__feature-link {
+    @include flex(row, center, center);
+    @include typography($font-size-sm, $font-weight-medium);
+    color: $color-primary;
+    text-decoration: none;
+    gap: 4px;
+    transition: $transition-quick;
+
+    &:hover {
+      color: darken($color-primary, 10%);
+      gap: 8px;
+    }
+  }
+
+  &__feature-arrow {
+    width: 16px;
+    height: 16px;
+    transition: $transition-quick;
+  }
+}

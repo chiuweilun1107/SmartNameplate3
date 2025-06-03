@@ -1,0 +1,242 @@
+<div class="card-designer">
+  <!-- 頂部工具欄 -->
+  <div class="card-designer__toolbar">
+    <!-- 桌牌名稱編輯 -->
+    <div class="card-designer__name-section">
+      <span class="card-designer__label">桌牌名稱：</span>
+      <input class="card-designer__name-field"
+             [(ngModel)]="cardName"
+             [readonly]="!isEditing"
+             (click)="enableNameEdit($event)"
+             (blur)="saveCardName()"
+             (keyup.enter)="saveCardName()"
+             #nameInput>
+    </div>
+
+    <!-- 模式控制區域 -->
+    <div class="card-designer__mode-controls">
+      <!-- 切換選項 -->
+      <div class="card-designer__toggles">
+        <mat-checkbox
+          class="sync-checkbox"
+          [checked]="isBSameAsA"
+          (change)="onSyncABChange($event.checked)">
+          B面與A面相同
+        </mat-checkbox>
+      </div>
+
+      <!-- 面板切換標籤 -->
+      <div class="card-designer__side-tabs">
+        <button class="card-designer__side-tab"
+                [class.active]="currentSide === 'A'"
+                (click)="switchToSide('A')">
+          A面
+        </button>
+        <button class="card-designer__side-tab"
+                [class.active]="currentSide === 'B'"
+                (click)="switchToSide('B')">
+          B面
+        </button>
+      </div>
+    </div>
+
+    <!-- 右側操作按鈕 -->
+    <div class="card-designer__actions">
+      <button mat-raised-button
+              (click)="saveCard()"
+              class="card-designer__save-btn card-designer__btn--primary">
+        儲存桌牌
+      </button>
+
+
+
+      <button mat-raised-button
+              (click)="saveAsTemplate()"
+              class="card-designer__template-btn card-designer__btn--secondary">
+        儲存樣板
+      </button>
+
+      <button mat-raised-button
+              (click)="resetCurrentSide()"
+              class="card-designer__reset-btn card-designer__btn--danger">
+        一鍵重置
+      </button>
+    </div>
+  </div>
+
+  <!-- 主要設計區域（畫布＋預覽整合） -->
+  <div class="card-designer__main-workspace">
+    <!-- 左側工具欄 -->
+    <div class="card-designer__left-sidebar">
+      <sn-element-toolbar
+        (addElement)="onAddElement($event)"
+        (addTemplate)="onAddTemplate($event)"
+        (alignElements)="onAlignElements($event)"
+        (layerAction)="onLayerAction($event)"
+        (templateModalOpen)="showTemplateModal = true"
+        (backgroundModalOpen)="showBackgroundModal = true"
+        (imageModalOpen)="showImageModal = true"
+        (openShapeSelectorModal)="openShapeSelector(true)">
+      </sn-element-toolbar>
+    </div>
+    <!-- 中央畫布＋預覽區域 -->
+    <div class="card-designer__canvas-area">
+      <div class="card-designer__canvas-container">
+        <div class="card-designer__canvas"
+             #canvasElement
+             [style.background]="currentCanvasData?.background || '#ffffff'">
+          <!-- 渲染所有可拖拽元素 -->
+          <ng-container *ngIf="canvasElement">
+            <sn-draggable-element
+              *ngFor="let element of canvasElements; trackBy: trackByElementId"
+              [element]="element"
+              [isSelected]="selectedElementId === element.id"
+              [isCropping]="isElementCropping(element.id)"
+              [canvasElement]="getCanvasNativeElement()"
+              [shouldCloseToolbar]="closeToolbarSignal"
+              (elementSelected)="onElementSelected($event)"
+              (elementMoved)="onElementMoved($event)"
+              (elementResized)="onElementResized($event)"
+              (elementUpdated)="onElementUpdated($event)"
+              (cropChanged)="onCropChanged($event)">
+            </sn-draggable-element>
+          </ng-container>
+          <!-- 空白畫布提示 -->
+          <div *ngIf="canvasElements.length === 0 && !hasBackground()"
+               class="card-designer__empty-canvas">
+            <p>點擊左側工具開始設計</p>
+          </div>
+        </div>
+      </div>
+      <!-- 預覽區塊直接接在畫布下方 -->
+      <div class="card-designer__preview-area">
+        <sn-live-preview [design]="currentDesign"></sn-live-preview>
+      </div>
+    </div>
+  </div>
+
+  <!-- 圖片元素工具列 -->
+  <sn-element-edit-toolbar
+    *ngIf="showImageToolbar && !croppingElementId"
+    [position]="toolbarPosition"
+    [targetElement]="getSelectedElement()"
+    [elementType]="'image'"
+    (close)="closeAllToolbars()"
+    (action)="onElementAction($event)">
+  </sn-element-edit-toolbar>
+
+  <!-- 形狀元素工具列 -->
+  <sn-element-edit-toolbar
+    *ngIf="showShapeToolbar && !croppingElementId"
+    [position]="toolbarPosition"
+    [targetElement]="getSelectedElement()"
+    [elementType]="'shape'"
+    [shapeType]="getSelectedShapeType()"
+    [currentShapeStyle]="getSelectedShapeStyle()"
+    (close)="closeAllToolbars()"
+    (action)="onElementAction($event)">
+  </sn-element-edit-toolbar>
+
+  <!-- QR碼元素工具列 -->
+  <sn-element-edit-toolbar
+    *ngIf="showQRCodeToolbar && !croppingElementId"
+    [position]="toolbarPosition"
+    [targetElement]="getSelectedElement()"
+    [elementType]="'qrcode'"
+    (close)="closeAllToolbars()"
+    (action)="onElementAction($event)">
+  </sn-element-edit-toolbar>
+
+  <!-- 文字元素工具列 -->
+  <sn-element-edit-toolbar
+    *ngIf="showTextToolbar && !croppingElementId"
+    [position]="toolbarPosition"
+    [targetElement]="getSelectedElement()"
+    [elementType]="'text'"
+    [currentTextStyle]="getCurrentTextStyle()"
+    (close)="closeAllToolbars()"
+    (action)="onElementAction($event)"
+    (styleChange)="onTextStyleChange($event)">
+  </sn-element-edit-toolbar>
+
+  <!-- 樣板選擇彈跳視窗 -->
+  <sn-template-modal
+    *ngIf="showTemplateModal"
+    [isVisible]="showTemplateModal"
+    (close)="showTemplateModal = false"
+    (templateSelected)="onTemplateSelected($event)">
+  </sn-template-modal>
+
+  <!-- 背景設定彈跳視窗 -->
+  <sn-background-modal
+    *ngIf="showBackgroundModal"
+    [isVisible]="showBackgroundModal"
+    (close)="showBackgroundModal = false"
+    (backgroundSelected)="onBackgroundSelected($event)">
+  </sn-background-modal>
+
+  <!-- 圖片選擇彈跳視窗 -->
+  <sn-image-modal
+    *ngIf="showImageModal"
+    [isVisible]="showImageModal"
+    (close)="showImageModal = false"
+    (imageSelected)="onImageSelected($event)">
+  </sn-image-modal>
+
+  <!-- 樣板類型選擇彈跳視窗 -->
+  <sn-template-category-modal
+    *ngIf="showTemplateCategoryModal"
+    [isVisible]="showTemplateCategoryModal"
+    [currentCardName]="cardName"
+    (close)="showTemplateCategoryModal = false"
+    (templateSaved)="onTemplateSaved($event)">
+  </sn-template-category-modal>
+
+  <!-- 顏色選擇器彈跳視窗 -->
+  <sn-color-picker-modal
+    *ngIf="showColorPickerModal"
+    [isVisible]="showColorPickerModal"
+    [title]="colorPickerTitle"
+    [currentColor]="colorPickerCurrentColor"
+    [showOpacity]="true"
+    (colorSelected)="onColorSelected($event)"
+    (close)="onColorPickerClose()">
+  </sn-color-picker-modal>
+
+  <!-- 簡化版顏色選擇器彈跳視窗（用於形狀） -->
+  <sn-simple-color-picker-modal
+    *ngIf="showSimpleColorPickerModal"
+    [isVisible]="showSimpleColorPickerModal"
+    [title]="colorPickerTitle"
+    [currentColor]="colorPickerCurrentColor"
+    (colorSelected)="onColorSelected($event)"
+    (close)="onColorPickerClose()">
+  </sn-simple-color-picker-modal>
+
+  <!-- 形狀選擇器彈跳視窗 -->
+  <sn-shape-selector-modal
+    *ngIf="showShapeSelectorModal"
+    [isVisible]="showShapeSelectorModal"
+    [currentShapeType]="currentShapeType"
+    (shapeSelected)="onShapeSelected($event)"
+    (close)="onShapeSelectorClose()">
+  </sn-shape-selector-modal>
+
+  <!-- QR碼編輯器彈跳視窗 -->
+  <sn-qrcode-editor-modal
+    *ngIf="showQRCodeEditorModal"
+    [isVisible]="showQRCodeEditorModal"
+    [currentSettings]="currentQRCodeSettings"
+    (settingsChanged)="onQRCodeSettingsChanged($event)"
+    (close)="onQRCodeEditorClose()">
+  </sn-qrcode-editor-modal>
+
+  <!-- 圖片編輯器彈跳視窗 -->
+  <sn-image-editor-modal
+    *ngIf="showImageEditorModal"
+    [isVisible]="showImageEditorModal"
+    [currentSettings]="currentImageEditSettings"
+    (settingsChanged)="onImageEditSettingsChanged($event)"
+    (close)="onImageEditorClose()">
+  </sn-image-editor-modal>
+</div>

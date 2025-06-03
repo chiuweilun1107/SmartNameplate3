@@ -1,0 +1,29 @@
+<div class="card-list-container">
+  <div class="card-list-header">
+    <h2>我的圖卡</h2>
+  </div>
+  
+  <div class="loading" *ngIf="loading">載入中...</div>
+  
+  <div class="card-grid" *ngIf="!loading">
+    <!-- 新增桌牌卡片 -->
+    <div class="card-item card-item--add" (click)="createCard()">
+      <div class="card-add-content">
+        <div class="add-icon">+</div>
+        <h3>新增圖卡</h3>
+      </div>
+    </div>
+    
+    <!-- 現有桌牌卡片 -->
+    <sn-card-item
+      *ngFor="let card of cards; trackBy: trackByCardId"
+      [card]="convertToCardItem(card)"
+      [showDeleteButton]="true"
+      [showToggleButtons]="true"
+      [showOtherSidePreview]="true"
+      (cardClick)="onCardClick($event)"
+      (cardDelete)="onCardDelete($event)"
+      (sideToggle)="onSideToggle($event)">
+    </sn-card-item>
+  </div>
+</div>

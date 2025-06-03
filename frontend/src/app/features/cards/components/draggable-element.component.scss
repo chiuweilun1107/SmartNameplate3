@@ -1,0 +1,500 @@
+@import '../../../../styles/abstracts/variables';
+@import '../../../../styles/abstracts/mixins';
+
+.draggable-element {
+  position: absolute;
+  cursor: move;
+  transition: box-shadow 0.2s ease;
+  border-radius: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  border: 1px solid transparent;
+  background: transparent;
+  user-select: none;
+
+  &.selected:not(.dragging) {
+    outline: 2px solid #2196f3;
+    outline-offset: 0px;
+    
+    // 在裁剪模式時隱藏外框
+    &.cropping {
+      outline: none;
+    }
+  }
+
+  &.dragging {
+    cursor: grabbing;
+    z-index: 1000;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    transform: rotate(2deg);
+  }
+
+  &:hover:not(.dragging) {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  &__content {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    border-radius: inherit;
+    overflow: visible; // 改為visible以允許標籤溢出
+    
+    // 當處於裁剪模式時，允許控制點溢出
+    &.crop-mode {
+      overflow: visible;
+    }
+  }
+
+  &__text {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    box-sizing: border-box;
+    font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', 'Microsoft YaHei', sans-serif;
+    line-height: 1.2;
+    overflow: visible; // 確保標籤可以溢出顯示
+    padding: 0;
+    position: relative; // 為了絕對定位的標籤
+    z-index: 1; // 設置基礎z-index
+    
+    // 確保文字容器佔滿寬度並尊重 text-align
+    > * {
+      width: 100%;
+      flex: 1;
+      word-break: break-word;
+      white-space: normal;
+    }
+    
+    // 專門為縮圖生成優化的樣式
+    span {
+      line-height: 1.2 !important;
+      white-space: nowrap !important;
+      overflow: visible !important;
+      text-overflow: visible !important;
+      display: inline-block !important;
+      width: auto !important;
+      max-width: none !important;
+      font-size: inherit !important;
+      font-family: inherit !important;
+      font-weight: inherit !important;
+      color: inherit !important;
+      text-align: inherit !important;
+      text-decoration: inherit !important;
+      font-style: inherit !important;
+      letter-spacing: inherit !important;
+      word-spacing: inherit !important;
+      
+      // 確保字體載入
+      font-display: swap !important;
+    }
+  }
+
+  // 文字元素標籤樣式
+  .text-element-tag {
+    position: absolute;
+    top: -15px;
+    right: 0; // 往右靠，對齊右邊緣
+    background: #2196f3;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex; // 改為 inline-flex 讓寬度自適應內容
+    align-items: center;
+    gap: 3px;
+    z-index: 999999 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    white-space: nowrap;
+    width: auto; // 寬度自動
+    max-width: 120px; // 設置最大寬度防止無限延伸
+    min-width: auto; // 移除 min-width: fit-content
+    transform: translateX(0);
+    pointer-events: none;
+    border: 2px solid white;
+    isolation: isolate;
+
+    &__icon {
+      font-size: 13px !important;
+      width: 13px !important;
+      height: 13px !important;
+      line-height: 13px !important;
+      flex-shrink: 0; // 圖標不縮放
+    }
+
+    &__label {
+      font-size: 11px;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+      overflow: hidden;
+      text-overflow: ellipsis; // 超出時顯示省略號
+      flex-shrink: 1; // 文字可以縮放
+    }
+
+    // 不同標籤類型的顏色
+    &--name { background: #4caf50; }
+    &--title { background: #ff9800; }
+    &--phone { background: #2196f3; }
+    &--address { background: #9c27b0; }
+    &--company { background: #f44336; }
+    &--custom { background: #607d8b; }
+  }
+
+  &__image {
+    width: 100%;
+    height: 100%;
+    object-fit: fill;
+    border-radius: inherit;
+  }
+
+  &__shape {
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    // 矩形（預設）
+    &--rectangle {
+      background: var(--shape-color, #e3f2fd);
+    }
+
+    // 圓形 - 使用純CSS圓形
+    &--circle {
+      border-radius: 50%;
+      background: var(--shape-color, #e3f2fd);
+    }
+
+    // 直線 - 特殊處理，只顯示一條線
+    &--line {
+      background: transparent;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: var(--shape-color, #e3f2fd);
+        transform: translateY(-50%);
+      }
+    }
+
+    // 三角形 - 使用CSS clip-path
+    &--triangle {
+      background: var(--shape-color, #e3f2fd);
+      clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+    }
+
+    // 星形 - 使用CSS clip-path 五角星
+    &--star {
+      background: var(--shape-color, #e3f2fd);
+      clip-path: polygon(
+        50% 0%, 
+        61% 35%, 
+        98% 35%, 
+        68% 57%, 
+        79% 91%, 
+        50% 70%, 
+        21% 91%, 
+        32% 57%, 
+        2% 35%, 
+        39% 35%
+      );
+    }
+
+    // 菱形
+    &--diamond {
+      background: var(--shape-color, #e3f2fd);
+      clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    }
+
+    // 六角形
+    &--hexagon {
+      background: var(--shape-color, #e3f2fd);
+      clip-path: polygon(25% 0%, 75% 0%, 100% 50%, 75% 100%, 25% 100%, 0% 50%);
+    }
+
+    // 八角形
+    &--octagon {
+      background: var(--shape-color, #e3f2fd);
+      clip-path: polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%);
+    }
+
+    // 橢圓形
+    &--ellipse {
+      background: var(--shape-color, #e3f2fd);
+      border-radius: 50%;
+    }
+  }
+
+  &__qrcode {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: white;
+    
+    &-placeholder {
+      color: #777;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    
+    &-editor {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+      
+      .input-container {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        
+        .qrcode-url-input {
+          width: 100%;
+          padding: 6px 8px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          font-size: 14px;
+          outline: none;
+          
+          &:focus {
+            border-color: #2196f3;
+            box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+          }
+        }
+        
+        .buttons-container {
+          display: flex;
+          justify-content: center;
+          gap: 8px;
+          margin-top: 5px;
+          
+          button {
+            min-width: 30px;
+            height: 30px;
+            padding: 0;
+            line-height: 30px;
+            
+            mat-icon {
+              font-size: 18px;
+              width: 18px;
+              height: 18px;
+              line-height: 18px;
+            }
+          }
+          
+          .save-button {
+            color: #4caf50;
+          }
+          
+          .cancel-button {
+            color: #f44336;
+          }
+          
+          .delete-button {
+            color: #f44336;
+          }
+        }
+      }
+    }
+  }
+
+  // 選擇控制點
+  &__handles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+  }
+
+  &__handle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: white;
+    border: 2px solid $color-accent;
+    border-radius: 50%;
+    pointer-events: all;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+
+    &:hover {
+      transform: scale(1.3);
+      background: $color-accent;
+      box-shadow: 0 4px 8px rgba($color-accent, 0.4);
+    }
+
+    // 角落控制點
+    &--nw {
+      top: -4px;
+      left: -4px;
+      cursor: nw-resize;
+    }
+
+    &--ne {
+      top: -4px;
+      right: -4px;
+      cursor: ne-resize;
+    }
+
+    &--sw {
+      bottom: -4px;
+      left: -4px;
+      cursor: sw-resize;
+    }
+
+    &--se {
+      bottom: -4px;
+      right: -4px;
+      cursor: se-resize;
+    }
+
+    // 直線兩端控制點精確對齊線中心
+    &--w {
+      left: 0px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: w-resize;
+    }
+    &--e {
+      right: 0px;
+      top: 50%;
+      transform: translateY(-50%);
+      cursor: e-resize;
+    }
+  }
+
+  // 響應式設計
+  @include respond-to(sm) {
+    &__handle {
+      width: 10px;
+      height: 10px;
+      
+      &--nw,
+      &--ne,
+      &--sw,
+      &--se {
+        margin: -8px;
+      }
+
+      &--n,
+      &--s,
+      &--w,
+      &--e {
+        margin: -8px;
+      }
+    }
+  }
+
+  // 裁剪相關樣式
+  .crop-controls {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    z-index: 1002;
+  }
+
+  .crop-handle {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #2196f3;
+    border: 3px solid #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    pointer-events: all;
+    box-shadow: 0 3px 8px rgba(33, 150, 243, 0.6);
+    transition: all 0.2s ease;
+    z-index: 1003;
+    
+    &:hover {
+      transform: scale(1.4);
+      background: #1976d2;
+      box-shadow: 0 6px 16px rgba(33, 150, 243, 0.8);
+      border-color: #fff;
+    }
+    
+    &--nw { 
+      top: -6px; 
+      left: -6px; 
+      cursor: nw-resize; 
+    }
+    
+    &--ne { 
+      top: -6px; 
+      right: -6px; 
+      cursor: ne-resize; 
+    }
+    
+    &--sw { 
+      bottom: -6px; 
+      left: -6px; 
+      cursor: sw-resize; 
+    }
+    
+    &--se { 
+      bottom: -10px; 
+      right: -10px; 
+      cursor: se-resize; 
+    }
+  }
+
+  .crop-selection {
+    position: absolute;
+    border: 2px solid #2196f3;
+    background: rgba(33, 150, 243, 0.12); // 半透明藍色
+    box-sizing: border-box;
+    z-index: 1002;
+    pointer-events: none;
+    overflow: visible !important; // 讓內部元素不被裁切
+
+    .crop-actions {
+      position: absolute;
+      top: -48px;
+      right: 0;
+      display: flex;
+      gap: 8px;
+      z-index: 1200;
+      overflow: visible !important;
+    }
+  }
+
+  // 強化icon-action-btn動畫效果
+  .sn-icon-action-btn.green:hover, .sn-icon-action-btn.red:hover {
+    transform: scale(1.18) !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
+  }
+  .sn-icon-action-btn.green:hover mat-icon {
+    color: #b9ffb9 !important;
+  }
+  .sn-icon-action-btn.red:hover mat-icon {
+    color: #ffd6d6 !important;
+  }
+}
+
+.draggable-element.cropping {
+  pointer-events: none;
+}
+.draggable-element.cropping .crop-selection,
+.draggable-element.cropping .crop-selection * {
+  pointer-events: auto;
+}

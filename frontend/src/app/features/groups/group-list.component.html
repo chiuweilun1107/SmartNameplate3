@@ -1,0 +1,61 @@
+<div class="group-list-container">
+  <div class="group-list-header">
+    <h2>我的群組</h2>
+  </div>
+  
+  <div class="loading" *ngIf="loading">載入中...</div>
+  
+  <div class="group-grid" *ngIf="!loading">
+    <!-- 新增群組卡片 -->
+    <div class="group-item group-item--add" (click)="createGroup()">
+      <div class="group-add-content">
+        <div class="add-icon">+</div>
+        <h3>新增群組</h3>
+      </div>
+    </div>
+    
+    <!-- 現有群組卡片 -->
+    <div 
+      *ngFor="let group of groups; trackBy: trackByGroupId"
+      class="group-item"
+      (click)="onGroupClick(group)">
+      
+      <!-- 操作按鈕 -->
+      <div class="group-actions">
+        <button class="group-action-btn group-edit-btn" (click)="editGroup(group, $event)" title="編輯群組">
+          <mat-icon>edit</mat-icon>
+        </button>
+        <button class="group-action-btn group-delete-btn" (click)="onGroupDelete(group, $event)" title="刪除群組">
+          <mat-icon>delete</mat-icon>
+        </button>
+      </div>
+        
+      <!-- 群組預覽 -->
+      <div class="group-preview">
+        <div class="group-stats">
+          <div class="stat">
+            <span class="stat-number">{{ group.cardCount }}</span>
+            <span class="stat-label">張圖卡</span>
+          </div>
+          <div class="stat">
+            <span class="stat-number">{{ group.deviceCount }}</span>
+            <span class="stat-label">個設備</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 群組資訊 -->
+      <div class="group-info">
+        <div class="group-info-content">
+          <div class="group-text-info">
+            <h3>{{ group.name }}</h3>
+            <p>{{ group.description || '無描述' }}</p>
+            <div class="group-meta">
+              <span class="created-date">建立於 {{ group.createdAt | date:'yyyy/MM/dd' }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div> 

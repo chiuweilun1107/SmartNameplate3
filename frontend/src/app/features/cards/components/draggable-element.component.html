@@ -1,0 +1,225 @@
+<div 
+  [id]="'element-' + element.id"
+  class="draggable-element"
+  [class.selected]="isSelected && !(element.type === 'shape' && getShapeElement().shapeType === 'line')"
+  [class.dragging]="isDragging"
+  [class.cropping]="isCropping"
+  [style.left.px]="getScaledPosition(element.position.x)"
+  [style.top.px]="getScaledPosition(element.position.y)"
+  [style.width.px]="getScaledSize(element.size.width)"
+  [style.height.px]="getScaledSize(element.size.height)"
+  [style.z-index]="element.zIndex"
+  (mousedown)="onMouseDown($event)"
+  (click)="onElementClick($event)">
+  
+  <!-- 元素內容 -->
+  <div class="draggable-element__content" 
+       [class.crop-mode]="isCropping && isSelected"
+       [ngSwitch]="element.type">
+    
+    <!-- 文字元素 -->
+    <div *ngSwitchCase="'text'"
+         class="draggable-element__text"
+         [style.fontSize.px]="getScaledFontSize(getTextElement().style.fontSize || 16)"
+         [style.color]="getTextElement().style.color"
+         [style.fontFamily]="getTextElementFontFamily()"
+         [style.fontWeight]="getTextElement().style.fontWeight"
+         [style.fontStyle]="getTextElement().style.fontStyle"
+         [style.textDecoration]="getTextElement().style.textDecoration"
+         [style.backgroundColor]="getTextElement().style.backgroundColor"
+         [style.borderRadius.px]="getScaledSize(getTextElement().style.borderRadius || 0)"
+         [style.padding.px]="getScaledSize(getTextElement().style.padding || 0)"
+         [style.textAlign]="getTextElement().style.textAlign"
+         (dblclick)="enableTextEdit()">
+      
+      <!-- 文字標籤 - 顯示在右上角，跟隨選中狀態 -->
+      <div *ngIf="getTextElement().style.tag && getTextElement().style.tag !== '' && !isEditingText && isSelected" 
+           class="text-element-tag"
+           [ngClass]="'text-element-tag--' + getTextElement().style.tag">
+        <mat-icon class="text-element-tag__icon">{{ getTagIcon(getTextElement().style.tag) }}</mat-icon>
+        <span class="text-element-tag__label">{{ getTagLabel(getTextElement().style.tag) }}</span>
+      </div>
+      
+      <ng-container *ngIf="!isEditingText; else editTpl">
+        <span [style.display]="'block'"
+              [style.width]="'100%'"
+              [style.fontFamily]="getTextElementFontFamily()">
+          {{ getTextElement().content }}
+        </span>
+      </ng-container>
+      <ng-template #editTpl>
+        <input
+          type="text"
+          [value]="editTextValue"
+          (blur)="saveTextEdit()"
+          (keydown.enter)="saveTextEdit()"
+          (input)="editTextValue = $any($event.target).value"
+          (mousedown)="$event.stopPropagation()"
+          (click)="$event.stopPropagation()"
+          [style.textAlign]="getTextElement().style.textAlign"
+          [style.fontFamily]="getTextElementFontFamily()"
+          style="width: 100%; border: none; background: transparent; outline: none;"
+          autofocus
+        />
+      </ng-template>
+    </div>
+    
+    <!-- 圖片元素 -->
+    <img *ngSwitchCase="'image'" 
+         class="draggable-element__image"
+         [src]="getImageElement().src"
+         [alt]="getImageElement().alt"
+         [style.borderRadius.px]="getScaledSize(getImageElement().style.borderRadius || 0)"
+         [style.opacity]="getImageElement().style.opacity"
+         [style.filter]="getImageElement().style.filter">
+    
+    <!-- 圖片裁剪區域與控制點 -->
+    <ng-container *ngIf="element.type === 'image' && isCropping && isSelected">
+      <!-- 裁剪區域 -->
+      <div class="crop-selection"
+           [style.left.px]="cropSelection.x"
+           [style.top.px]="cropSelection.y"
+           [style.width.px]="cropSelection.width"
+           [style.height.px]="cropSelection.height">
+        <!-- 四個控制點 -->
+        <div class="crop-handle crop-handle--nw" (mousedown)="startCropResize($event, 'nw')"></div>
+        <div class="crop-handle crop-handle--ne" (mousedown)="startCropResize($event, 'ne')"></div>
+        <div class="crop-handle crop-handle--sw" (mousedown)="startCropResize($event, 'sw')"></div>
+        <div class="crop-handle crop-handle--se" (mousedown)="startCropResize($event, 'se')"></div>
+        <!-- 裁剪操作按鈕 -->
+        <div class="crop-actions">
+          <sn-icon-action-button icon="check" color="green" ariaLabel="完成裁剪" (clicked)="applyCrop($event)"></sn-icon-action-button>
+          <sn-icon-action-button icon="close" color="red" ariaLabel="取消裁剪" (clicked)="cancelCrop($event)"></sn-icon-action-button>
+        </div>
+      </div>
+    </ng-container>
+    
+    <!-- 形狀元素 -->
+    <ng-container *ngSwitchCase="'shape'">
+      <!-- 矩形 -->
+      <div *ngIf="getShapeElement().shapeType === 'rectangle'"
+           class="draggable-element__shape draggable-element__shape--rectangle"
+           [style.backgroundColor]="getShapeElement().style.backgroundColor"
+           [style.borderColor]="getShapeElement().style.borderColor"
+           [style.borderWidth.px]="getScaledSize(getShapeElement().style.borderWidth || 0)"
+           [style.borderStyle]="(getShapeElement().style.borderWidth && getShapeElement().style.borderColor && getShapeElement().style.borderColor !== 'none' && getShapeElement().style.borderColor !== 'transparent') ? 'solid' : 'none'"
+           [style.borderRadius.px]="getScaledSize(getShapeElement().style.borderRadius || 0)">
+      </div>
+      <!-- 圓形 -->
+      <div *ngIf="getShapeElement().shapeType === 'circle'"
+           class="draggable-element__shape draggable-element__shape--circle"
+           [style.backgroundColor]="getShapeElement().style.backgroundColor"
+           [style.borderColor]="getShapeElement().style.borderColor"
+           [style.borderWidth.px]="getScaledSize(getShapeElement().style.borderWidth || 0)"
+           [style.borderStyle]="(getShapeElement().style.borderWidth && getShapeElement().style.borderColor && getShapeElement().style.borderColor !== 'none' && getShapeElement().style.borderColor !== 'transparent') ? 'solid' : 'none'">
+      </div>
+      <!-- 直線（SVG） -->
+      <svg *ngIf="getShapeElement().shapeType === 'line'"
+           class="draggable-element__shape"
+           [attr.width]="getScaledSize(element.size.width)"
+           [attr.height]="getScaledSize(element.size.height)"
+           [attr.viewBox]="'0 0 ' + element.size.width + ' ' + element.size.height">
+        <line [attr.x1]="0"
+              [attr.y1]="element.size.height / 2"
+              [attr.x2]="element.size.width"
+              [attr.y2]="element.size.height / 2"
+              [attr.stroke]="getShapeElement().style.backgroundColor"
+              [attr.stroke-width]="element.size.height"
+              stroke-linecap="square" />
+      </svg>
+      <!-- 三角形（SVG） -->
+      <svg *ngIf="getShapeElement().shapeType === 'triangle'"
+           class="draggable-element__shape"
+           [attr.width]="getScaledSize(element.size.width)"
+           [attr.height]="getScaledSize(element.size.height)"
+           [attr.viewBox]="'0 0 ' + element.size.width + ' ' + element.size.height">
+        <polygon [attr.points]="getTrianglePoints(element.size.width, element.size.height)"
+                 [attr.fill]="getShapeElement().style.backgroundColor"
+                 [attr.stroke]="getShapeElement().style.borderColor"
+                 [attr.stroke-width]="(getShapeElement().style.borderWidth && getShapeElement().style.borderColor && getShapeElement().style.borderColor !== 'none' && getShapeElement().style.borderColor !== 'transparent') ? (getShapeElement().style.borderWidth || 0) : 0" />
+      </svg>
+      <!-- 星形（SVG） -->
+      <svg *ngIf="getShapeElement().shapeType === 'star'"
+           class="draggable-element__shape"
+           [attr.width]="getScaledSize(element.size.width)"
+           [attr.height]="getScaledSize(element.size.height)"
+           [attr.viewBox]="'0 0 ' + element.size.width + ' ' + element.size.height">
+        <polygon [attr.points]="getStarPoints(element.size.width, element.size.height)"
+                 [attr.fill]="getShapeElement().style.backgroundColor"
+                 [attr.stroke]="getShapeElement().style.borderColor"
+                 [attr.stroke-width]="(getShapeElement().style.borderWidth && getShapeElement().style.borderColor && getShapeElement().style.borderColor !== 'none' && getShapeElement().style.borderColor !== 'transparent') ? (getShapeElement().style.borderWidth || 0) : 0" />
+      </svg>
+      <!-- 多邊形（SVG 六邊形） -->
+      <svg *ngIf="getShapeElement().shapeType === 'polygon'"
+           class="draggable-element__shape"
+           [attr.width]="getScaledSize(element.size.width)"
+           [attr.height]="getScaledSize(element.size.height)"
+           [attr.viewBox]="'0 0 ' + element.size.width + ' ' + element.size.height">
+        <polygon [attr.points]="getHexagonPoints(element.size.width, element.size.height)"
+                 [attr.fill]="getShapeElement().style.backgroundColor"
+                 [attr.stroke]="getShapeElement().style.borderColor"
+                 [attr.stroke-width]="(getShapeElement().style.borderWidth && getShapeElement().style.borderColor && getShapeElement().style.borderColor !== 'none' && getShapeElement().style.borderColor !== 'transparent') ? (getShapeElement().style.borderWidth || 0) : 0" />
+      </svg>
+      <!-- 其他形狀（保留 clip-path 實作） -->
+      <div *ngIf="getShapeElement().shapeType !== 'rectangle' && getShapeElement().shapeType !== 'circle' && getShapeElement().shapeType !== 'line' && getShapeElement().shapeType !== 'triangle' && getShapeElement().shapeType !== 'star'"
+           class="draggable-element__shape"
+           [ngClass]="'draggable-element__shape--' + getShapeElement().shapeType"
+           [style.backgroundColor]="getShapeElement().style.backgroundColor"
+           [style.borderColor]="getShapeElement().style.borderColor"
+           [style.borderWidth.px]="getScaledSize(getShapeElement().style.borderWidth || 0)"
+           [style.borderStyle]="(getShapeElement().style.borderWidth && getShapeElement().style.borderColor && getShapeElement().style.borderColor !== 'none' && getShapeElement().style.borderColor !== 'transparent') ? 'solid' : 'none'"
+           [style.borderRadius.px]="getScaledSize(getShapeElement().style.borderRadius || 0)">
+      </div>
+    </ng-container>
+    
+    <!-- QR碼元素 -->
+    <div *ngSwitchCase="'qrcode'"
+         class="draggable-element__qrcode"
+         [style.backgroundColor]="getQRCodeElement().style.backgroundColor"
+         [style.borderColor]="getQRCodeElement().style.borderColor"
+         [style.borderWidth.px]="getScaledSize(getQRCodeElement().style.borderWidth || 0)"
+         [style.borderStyle]="getQRCodeElement().style.borderWidth ? 'solid' : 'none'"
+         [style.borderRadius.px]="getScaledSize(getQRCodeElement().style.borderRadius || 0)">
+
+      <!-- QR碼顯示 -->
+      <qrcode
+        *ngIf="getQRCodeElement().data"
+        [qrdata]="getQRCodeElement().data"
+        [colorDark]="getQRCodeElement().style.foregroundColor || '#000'"
+        [colorLight]="getQRCodeElement().style.backgroundColor || '#fff'"
+        [width]="getScaledSize(element.size.width)"
+        [margin]="getQRCodeElement().margin || 4"
+        [errorCorrectionLevel]="getQRCodeElement().errorCorrectionLevel || 'M'">
+      </qrcode>
+      <div *ngIf="!getQRCodeElement().data" class="draggable-element__qrcode-placeholder">
+        QR
+      </div>
+    </div>
+    
+  </div>
+  
+  <!-- 選中狀態的控制點 - 直線形狀只顯示兩個控制點 -->
+  <div *ngIf="isSelected && !isDragging && !isCropping && element.type === 'shape' && getShapeElement().shapeType === 'line'" 
+       class="draggable-element__handles">
+    <div class="draggable-element__handle draggable-element__handle--w" data-handle="w"
+         [style.left.px]="0"
+         [style.top.%]="50"
+         [style.transform]="'translate(-50%, -50%)'"></div>
+    <div class="draggable-element__handle draggable-element__handle--e" data-handle="e"
+         [style.right.px]="0"
+         [style.top.%]="50"
+         [style.transform]="'translate(50%, -50%)'"></div>
+  </div>
+
+  <!-- 選中狀態的控制點 - 其他形狀顯示完整控制點 -->
+  <div *ngIf="isSelected && !isDragging && !isCropping && !(element.type === 'shape' && getShapeElement().shapeType === 'line')" 
+       class="draggable-element__handles">
+    <div class="draggable-element__handle draggable-element__handle--nw" data-handle="nw"></div>
+    <div class="draggable-element__handle draggable-element__handle--ne" data-handle="ne"></div>
+    <div class="draggable-element__handle draggable-element__handle--sw" data-handle="sw"></div>
+    <div class="draggable-element__handle draggable-element__handle--se" data-handle="se"></div>
+    <div class="draggable-element__handle draggable-element__handle--n" data-handle="n"></div>
+    <div class="draggable-element__handle draggable-element__handle--s" data-handle="s"></div>
+  </div>
+  
+</div>

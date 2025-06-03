@@ -1,0 +1,27 @@
+<div class="app-container">
+  <sn-header 
+    [title]="title"
+    [isLoggedIn]="isLoggedIn"
+    [userName]="userName"
+    [userAvatar]="userAvatar"
+    (loginClick)="onLogin()"
+    (logoutClick)="onLogout()"
+    (profileClick)="onProfile()">
+  </sn-header>
+  
+  <main class="app-main">
+    <router-outlet></router-outlet>
+  </main>
+  
+  <sn-footer *ngIf="showFooter"></sn-footer>
+  
+  <!-- 通知元件 -->
+  <app-notification></app-notification>
+  
+  <!-- 登入彈跳視窗 -->
+  <app-login-modal 
+    [isVisible]="showLoginModal"
+    (loginSuccess)="onLoginSuccess($event)"
+    (closeModalEvent)="onCloseLoginModal()">
+  </app-login-modal>
+</div>

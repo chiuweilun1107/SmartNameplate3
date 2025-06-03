@@ -1,0 +1,150 @@
+<div class="contact">
+  <div class="contact__container">
+    <!-- 頁面標題 -->
+    <div class="contact__header">
+      <h1 class="contact__title">聯繫客服</h1>
+      <p class="contact__subtitle">
+        有任何問題或需要協助？我們很樂意為您提供幫助
+      </p>
+    </div>
+
+    <!-- 聯繫方式和表單 -->
+    <div class="contact__content">
+      <!-- 左側：聯繫資訊 -->
+      <div class="contact__info">
+        <mat-card class="contact__info-card">
+          <mat-card-header>
+            <mat-card-title>聯繫資訊</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="contact__info-item">
+              <mat-icon>phone</mat-icon>
+              <div>
+                <h4>客服專線</h4>
+                <p>0800-123-456</p>
+                <p class="contact__info-time">週一至週五 9:00-18:00</p>
+              </div>
+            </div>
+
+            <div class="contact__info-item">
+              <mat-icon>email</mat-icon>
+              <div>
+                <h4>電子郵件</h4>
+                <p>support&#64;smartnameplate.com</p>
+                <p class="contact__info-time">24小時內回覆</p>
+              </div>
+            </div>
+
+            <div class="contact__info-item">
+              <mat-icon>chat</mat-icon>
+              <div>
+                <h4>線上客服</h4>
+                <p>即時線上諮詢</p>
+                <button mat-raised-button color="primary" class="contact__chat-btn">
+                  開始對話
+                </button>
+              </div>
+            </div>
+
+            <div class="contact__info-item">
+              <mat-icon>location_on</mat-icon>
+              <div>
+                <h4>公司地址</h4>
+                <p>台北市信義區信義路五段7號</p>
+                <p>台北101大樓 35樓</p>
+              </div>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+
+      <!-- 右側：聯繫表單 -->
+      <div class="contact__form">
+        <mat-card class="contact__form-card">
+          <mat-card-header>
+            <mat-card-title>發送訊息</mat-card-title>
+            <mat-card-subtitle>填寫以下表單，我們會盡快與您聯繫</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <form [formGroup]="contactForm" (ngSubmit)="onSubmit()" class="contact__form-content">
+              <!-- 姓名 -->
+              <mat-form-field appearance="outline" class="contact__field">
+                <mat-label>姓名 *</mat-label>
+                <input matInput formControlName="name" placeholder="請輸入您的姓名">
+                <mat-error *ngIf="contactForm.get('name')?.hasError('required')">
+                  請輸入姓名
+                </mat-error>
+              </mat-form-field>
+
+              <!-- 電子郵件 -->
+              <mat-form-field appearance="outline" class="contact__field">
+                <mat-label>電子郵件 *</mat-label>
+                <input matInput type="email" formControlName="email" placeholder="請輸入您的電子郵件">
+                <mat-error *ngIf="contactForm.get('email')?.hasError('required')">
+                  請輸入電子郵件
+                </mat-error>
+                <mat-error *ngIf="contactForm.get('email')?.hasError('email')">
+                  請輸入有效的電子郵件格式
+                </mat-error>
+              </mat-form-field>
+
+              <!-- 公司名稱 -->
+              <mat-form-field appearance="outline" class="contact__field">
+                <mat-label>公司名稱</mat-label>
+                <input matInput formControlName="company" placeholder="請輸入公司名稱（選填）">
+              </mat-form-field>
+
+              <!-- 聯繫電話 -->
+              <mat-form-field appearance="outline" class="contact__field">
+                <mat-label>聯繫電話</mat-label>
+                <input matInput formControlName="phone" placeholder="請輸入聯繫電話（選填）">
+              </mat-form-field>
+
+              <!-- 訊息內容 -->
+              <mat-form-field appearance="outline" class="contact__field contact__field--message">
+                <mat-label>訊息內容 *</mat-label>
+                <textarea matInput formControlName="message" rows="5" 
+                          placeholder="請詳細描述您的問題或需求..."></textarea>
+                <mat-error *ngIf="contactForm.get('message')?.hasError('required')">
+                  請輸入訊息內容
+                </mat-error>
+              </mat-form-field>
+
+              <!-- 提交按鈕 -->
+              <div class="contact__form-actions">
+                <button mat-raised-button color="primary" type="submit" 
+                        [disabled]="contactForm.invalid" class="contact__submit-btn">
+                  <mat-icon>send</mat-icon>
+                  發送訊息
+                </button>
+              </div>
+            </form>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+
+    <!-- 常見問題快速連結 -->
+    <div class="contact__faq">
+      <h3>常見問題</h3>
+      <div class="contact__faq-grid">
+        <div class="contact__faq-item">
+          <h4>如何開始使用智慧桌牌？</h4>
+          <p>註冊帳號後，您可以立即開始設計您的第一張電子桌牌。</p>
+        </div>
+        <div class="contact__faq-item">
+          <h4>支援哪些電子紙設備？</h4>
+          <p>我們支援市面上主流的電子紙顯示器，包括各種尺寸規格。</p>
+        </div>
+        <div class="contact__faq-item">
+          <h4>如何進行批次管理？</h4>
+          <p>透過群組功能，您可以輕鬆管理多個桌牌的內容更新。</p>
+        </div>
+        <div class="contact__faq-item">
+          <h4>有提供技術支援嗎？</h4>
+          <p>是的，我們提供完整的技術支援和使用教學。</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

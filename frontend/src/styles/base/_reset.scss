@@ -1,0 +1,112 @@
+// Apple-inspired Global Reset and Base Styles
+@import '../abstracts/variables';
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: $font-size-md;
+  font-weight: $font-weight-regular;
+  line-height: 1.4;
+  color: $text-color-primary;
+  background-color: $bg-color-primary;
+  -webkit-text-size-adjust: 100%;
+}
+
+// Remove default margins and paddings
+h1, h2, h3, h4, h5, h6,
+p, ul, ol, li,
+figure, blockquote {
+  margin: 0;
+  padding: 0;
+}
+
+// Apple-style link reset
+a {
+  color: $color-accent;
+  text-decoration: none;
+  transition: $transition-quick;
+  
+  &:hover {
+    opacity: 0.8;
+  }
+}
+
+// Button reset
+button {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+}
+
+// Input reset
+input, textarea, select {
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  background: white;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: $border-radius-md;
+  padding: $spacing-sm $spacing-md;
+  transition: $transition-quick;
+  
+  &:focus {
+    outline: none;
+    border-color: $color-accent;
+  }
+}
+
+// Image reset
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+// Apple-style scrollbar (webkit only)
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  
+  &:hover {
+    background: rgba(0, 0, 0, 0.3);
+  }
+}
+
+// Selection styles
+::selection {
+  background: rgba($color-accent, 0.2);
+  color: $text-color-primary;
+}
+
+::-moz-selection {
+  background: rgba($color-accent, 0.2);
+  color: $text-color-primary;
+}

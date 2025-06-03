@@ -1,0 +1,16 @@
+{
+  "name": "smartnameplate-tools",
+  "version": "1.0.0",
+  "description": "SmartNameplate 開發工具和腳本",
+  "private": true,
+  "dependencies": {
+    "pg": "^8.16.0"
+  },
+  "scripts": {
+    "extract-thumbnails": "node scripts/extract_thumbnails.js",
+    "fix-boundary": "node scripts/fix_boundary_elements.js",
+    "generate-schemas": "node scripts/generate_universal_schema.js",
+    "generate-postgresql": "node -e \"require('./scripts/generate_universal_schema.js').generateSQL('postgresql')\"",
+    "generate-sqlserver": "node -e \"require('./scripts/generate_universal_schema.js').generateSQL('sqlserver')\""
+  }
+} 

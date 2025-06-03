@@ -1,0 +1,71 @@
+.sn-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-sm $spacing-md;
+  border-radius: $border-radius-md;
+  font-weight: $font-weight-medium;
+  cursor: pointer;
+  transition: $transition-quick;
+  border: none;
+  text-decoration: none;
+  @include typography($font-size-md);
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  &__icon {
+    margin-right: $spacing-xs;
+  }
+  
+  // 主要按鈕
+  &--primary {
+    background-color: $color-primary;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background-color: darken($color-primary, 10%);
+    }
+    
+    &:active {
+      background-color: darken($color-primary, 15%);
+    }
+  }
+  
+  // 次要按鈕
+  &--secondary {
+    background-color: $color-secondary;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background-color: darken($color-secondary, 10%);
+    }
+  }  
+  // 輪廓按鈕
+  &--outline {
+    background-color: transparent;
+    border: 1px solid currentColor;
+    
+    &.sn-button--primary {
+      color: $color-primary;
+      border-color: $color-primary;
+      
+      &:hover:not(:disabled) {
+        background-color: rgba($color-primary, 0.1);
+      }
+    }
+  }
+  
+  // 尺寸變化
+  &--small {
+    padding: $spacing-xs $spacing-sm;
+    @include typography($font-size-sm);
+  }
+  
+  &--large {
+    padding: $spacing-md $spacing-lg;
+    @include typography($font-size-lg);
+  }
+}

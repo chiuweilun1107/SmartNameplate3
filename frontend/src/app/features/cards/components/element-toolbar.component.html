@@ -1,0 +1,107 @@
+<div class="element-toolbar">
+  <!-- 添加元素區域 -->
+  <div class="element-toolbar__section">
+    <h3 class="element-toolbar__title">{{ text.sections.addElement.title }}</h3>
+    <div class="element-toolbar__grid">
+
+      <!-- 文字元素 -->
+      <button class="element-toolbar__item element-toolbar__item--text"
+              (click)="addTextElement()">
+        <div class="element-toolbar__icon">
+          <mat-icon>text_fields</mat-icon>
+        </div>
+        <span class="element-toolbar__label">{{ text.sections.addElement.items.text }}</span>
+      </button>
+
+      <!-- 圖片元素 -->
+      <button class="element-toolbar__item element-toolbar__item--image"
+              (click)="addImageElement()">
+        <div class="element-toolbar__icon">
+          <mat-icon>image</mat-icon>
+        </div>
+        <span class="element-toolbar__label">{{ text.sections.addElement.items.image }}</span>
+      </button>
+
+      <!-- 形狀元素 -->
+      <button class="element-toolbar__item element-toolbar__item--shape"
+              (click)="openShapeSelector()">
+        <div class="element-toolbar__icon">
+          <mat-icon>crop_square</mat-icon>
+        </div>
+        <span class="element-toolbar__label">{{ text.sections.addElement.items.shape }}</span>
+      </button>
+
+      <!-- QR碼元素 -->
+      <button class="element-toolbar__item element-toolbar__item--qr"
+              (click)="addQRCodeElement()">
+        <div class="element-toolbar__icon">
+          <mat-icon>qr_code</mat-icon>
+        </div>
+        <span class="element-toolbar__label">{{ text.sections.addElement.items.qrcode }}</span>
+      </button>
+
+      <!-- 套入樣板 -->
+      <button class="element-toolbar__item element-toolbar__item--template"
+              (click)="openTemplateModal()">
+        <div class="element-toolbar__icon">
+          <mat-icon>dashboard</mat-icon>
+        </div>
+        <span class="element-toolbar__label">套入樣板</span>
+      </button>
+
+      <!-- 設定背景 -->
+      <button class="element-toolbar__item element-toolbar__item--background"
+              (click)="openBackgroundModal()">
+        <div class="element-toolbar__icon">
+          <mat-icon>palette</mat-icon>
+        </div>
+        <span class="element-toolbar__label">設定背景</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- 快速模板區域 -->
+  <div class="element-toolbar__section">
+    <h3 class="element-toolbar__title">{{ text.sections.templates.title }}</h3>
+    <div class="element-toolbar__template-list">
+
+      <button class="element-toolbar__template"
+              (click)="addNameCardTemplate()">
+        <div class="element-toolbar__template-icon">
+          <mat-icon>badge</mat-icon>
+        </div>
+        <div class="element-toolbar__template-info">
+          <span class="element-toolbar__template-name">{{ text.sections.templates.items.nameCard.name }}</span>
+          <span class="element-toolbar__template-desc">{{ text.sections.templates.items.nameCard.description }}</span>
+        </div>
+      </button>
+
+      <button class="element-toolbar__template"
+              (click)="addMeetingTemplate()">
+        <div class="element-toolbar__template-icon">
+          <mat-icon>meeting_room</mat-icon>
+        </div>
+        <div class="element-toolbar__template-info">
+          <span class="element-toolbar__template-name">{{ text.sections.templates.items.meeting.name }}</span>
+          <span class="element-toolbar__template-desc">{{ text.sections.templates.items.meeting.description }}</span>
+        </div>
+      </button>
+
+      <button class="element-toolbar__template"
+              (click)="addEventTemplate()">
+        <div class="element-toolbar__template-icon">
+          <mat-icon>event</mat-icon>
+        </div>
+        <div class="element-toolbar__template-info">
+          <span class="element-toolbar__template-name">{{ text.sections.templates.items.event.name }}</span>
+          <span class="element-toolbar__template-desc">{{ text.sections.templates.items.event.description }}</span>
+        </div>
+      </button>
+
+    </div>
+  </div>
+
+
+
+</div>

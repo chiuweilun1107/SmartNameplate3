@@ -1,0 +1,362 @@
+@import '../../../../styles/abstracts/variables';
+@import '../../../../styles/abstracts/mixins';
+
+.element-toolbar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: $border-radius-xl;
+  padding: $spacing-lg;
+  height: 100%;
+  overflow-y: auto;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  &__section {
+    margin-bottom: $spacing-3xl;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__title {
+    @include typography($font-size-lg, $font-weight-bold);
+    color: $text-color-primary;
+    margin: 0 0 $spacing-lg 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    letter-spacing: -0.01em;
+  }
+
+  // 元素網格
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-md;
+  }
+
+  &__item {
+    @include flex(column, center, center);
+    gap: $spacing-sm;
+    padding: $spacing-lg;
+    border: 2px solid rgba(0, 0, 0, 0.06);
+    border-radius: $border-radius-lg;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    min-height: 90px;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(135deg, transparent 0%, rgba(255, 255, 255, 0.1) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover {
+      border-color: rgba($color-accent, 0.3);
+      transform: translateY(-3px) scale(1.02);
+    }
+
+    &:active {
+      transform: translateY(-1px) scale(1.01);
+    }
+
+    &--text:hover {
+      border-color: #1976d2;
+      .element-toolbar__icon mat-icon { color: #1976d2; }
+    }
+
+    &--image:hover {
+      border-color: #388e3c;
+      .element-toolbar__icon mat-icon { color: #388e3c; }
+    }
+
+    &--shape:hover {
+      border-color: #f57c00;
+      .element-toolbar__icon mat-icon { color: #f57c00; }
+    }
+
+    &--qr:hover {
+      border-color: #7b1fa2;
+      .element-toolbar__icon mat-icon { color: #7b1fa2; }
+    }
+
+    &--template:hover {
+      border-color: #e91e63;
+      .element-toolbar__icon mat-icon { color: #e91e63; }
+    }
+
+    &--background:hover {
+      border-color: #00bcd4;
+      .element-toolbar__icon mat-icon { color: #00bcd4; }
+    }
+  }
+
+  &__icon {
+    @include flex(row, center, center);
+    width: 44px;
+    height: 44px;
+    border-radius: $border-radius-md;
+    background: rgba($color-accent, 0.1);
+    transition: all 0.3s ease;
+
+    mat-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+      color: $text-color-secondary;
+      transition: all 0.3s ease;
+    }
+  }
+
+  &__label {
+    @include typography($font-size-sm, $font-weight-semibold);
+    color: $text-color-primary;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  // 模板列表
+  &__template-list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-md;
+  }
+
+  &__template {
+    @include flex(row, flex-start, center);
+    gap: $spacing-md;
+    padding: $spacing-md;
+    border: 2px solid rgba(0, 0, 0, 0.06);
+    border-radius: $border-radius-lg;
+    background: white;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: left;
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: linear-gradient(90deg, transparent 0%, rgba($color-accent, 0.05) 100%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    &:hover {
+      border-color: rgba($color-accent, 0.3);
+      transform: translateX(6px);
+    }
+
+    &:active {
+      transform: translateX(3px);
+    }
+  }
+
+  &__template-icon {
+    @include flex(row, center, center);
+    width: 40px;
+    height: 40px;
+    border-radius: $border-radius-md;
+    background: rgba($color-accent, 0.1);
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: $color-accent;
+      transition: all 0.3s ease;
+    }
+  }
+
+  &__template-info {
+    @include flex(column, flex-start, flex-start);
+    gap: 2px;
+    flex: 1;
+  }
+
+  &__template-name {
+    @include typography($font-size-sm, $font-weight-semibold);
+    color: $text-color-primary;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  &__template-desc {
+    @include typography($font-size-xs, $font-weight-regular);
+    color: $text-color-secondary;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  // 排版工具
+  &__layout-tools {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-lg;
+  }
+
+  &__tool-group {
+    @include flex(column, flex-start, flex-start);
+    gap: $spacing-sm;
+  }
+
+  &__tool-label {
+    @include typography($font-size-sm, $font-weight-semibold);
+    color: $text-color-secondary;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  &__tool-buttons {
+    @include flex(row, flex-start, center);
+    gap: 4px;
+    background: rgba(248, 249, 250, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 4px;
+    border-radius: $border-radius-md;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  &__tool-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: calc(#{$border-radius-md} - 4px);
+    background: transparent;
+    border: none;
+    @include flex(row, center, center);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: $text-color-secondary;
+      transition: all 0.2s ease;
+    }
+
+    &:hover {
+      background: white;
+      transform: scale(1.05);
+
+      mat-icon {
+        color: $color-accent;
+      }
+    }
+
+    &:active {
+      transform: scale(0.95);
+    }
+  }
+
+  // 捲軸樣式 (Apple 風格)
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.3);
+    }
+  }
+
+  // Material 覆蓋樣式
+  ::ng-deep {
+    .mat-mdc-icon-button {
+      --mdc-icon-button-state-layer-size: 36px;
+
+      &:hover {
+        background-color: transparent !important;
+      }
+    }
+
+    .mat-mdc-menu-panel {
+      border-radius: $border-radius-lg !important;
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+
+    .mat-mdc-menu-item {
+      border-radius: $border-radius-md;
+      margin: 4px 8px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        background-color: rgba($color-accent, 0.1) !important;
+        transform: translateX(4px);
+      }
+
+      .mat-icon {
+        margin-right: 12px;
+        color: $text-color-secondary;
+      }
+
+      span {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        font-weight: $font-weight-medium;
+      }
+    }
+
+    .mat-mdc-tooltip {
+      background: rgba(0, 0, 0, 0.8) !important;
+      color: white !important;
+      border-radius: $border-radius-md !important;
+      backdrop-filter: blur(10px);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-medium;
+    }
+  }
+
+  // 響應式設計
+  @include respond-to(lg) {
+    padding: $spacing-md;
+
+    &__grid {
+      gap: $spacing-sm;
+    }
+
+    &__item {
+      min-height: 80px;
+      padding: $spacing-md;
+    }
+
+    &__template {
+      padding: $spacing-sm;
+    }
+  }
+
+  @include respond-to(md) {
+    border-radius: $border-radius-lg;
+
+    &__grid {
+      grid-template-columns: 1fr;
+    }
+
+    &__item {
+      @include flex(row, flex-start, center);
+      text-align: left;
+
+      .element-toolbar__icon {
+        margin-right: $spacing-sm;
+      }
+    }
+  }
+}

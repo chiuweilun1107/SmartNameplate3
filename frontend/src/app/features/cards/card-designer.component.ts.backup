@@ -1,0 +1,1104 @@
+import { Component, OnInit, OnDestroy, ElementRef, ViewChild, AfterViewInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { RouterModule, ActivatedRoute } from '@angular/router';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
+import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { Subject, takeUntil } from 'rxjs';
+import html2canvas from 'html2canvas';
+
+// 服務和模型
+import { CardDesignerService } from './services/card-designer.service';
+import { CardDesign, CanvasElement, Position, CanvasData } from './models/card-design.models';
+
+// 組件
+import { DraggableElementComponent } from './components/draggable-element.component';
+import { ElementToolbarComponent } from './components/element-toolbar.component';
+import { LivePreviewComponent } from './components/live-preview.component';
+import { TextToolbarRedesignedComponent, TextStyle } from '../../shared/components/toolbars/text-toolbar-redesigned.component';
+import { TemplateModalComponent, Template } from '../../shared/components/modals/template-modal.component';
+import { BackgroundModalComponent, BackgroundOption } from '../../shared/components/modals/background-modal.component';
+import { TemplateCategoryModalComponent, TemplateCategorySelection } from '../../shared/components/modals/template-category-modal.component';
+import { TemplateApiService } from './services/template-api.service';
+import { ImageModalComponent, ImageOption } from '../../shared/components/modals/image-modal.component';
+
+@Component({
+  selector: 'sn-card-designer',
+  standalone: true,
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    MatButtonModule,
+    MatIconModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatSlideToggleModule,
+    MatTooltipModule,
+    MatCheckboxModule,
+    DraggableElementComponent,
+    ElementToolbarComponent,
+    LivePreviewComponent,
+    TextToolbarRedesignedComponent,
+    TemplateModalComponent,
+    BackgroundModalComponent,
+    ImageModalComponent,
+    TemplateCategoryModalComponent
+  ],
+  templateUrl: './card-designer.component.html',
+  styleUrls: ['./card-designer.component.scss']
+})
+export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
+  @ViewChild('canvasElement', { static: false }) canvasElement?: ElementRef<HTMLDivElement>;
+
+  // 基本屬性
+  cardName = '新圖卡';
+  isEditing = false;
+  currentSide: 'A' | 'B' = 'A';
+  cardId: string | null = null;
+
+  // 模式設定
+  isBSameAsA = false;
+
+  // 當前設計和元素
+  currentDesign: CardDesign | null = null;
+  selectedElementId: string | null = null;
+
+  // 畫布相關
+  currentCanvasData: CanvasData | null = null;
+  canvasElements: CanvasElement[] = [];
+  closeToolbarSignal = 0; // 用於觸發工具列關閉
+
+  showTextToolbar = false;
+  toolbarPosition = { x: -9999, y: -9999 };
+  currentTextStyle: TextStyle = {};
+  selectedTextElementId: string | null = null;
+  selectedElementType: string | null = null;
+
+  // 彈跳視窗狀態
+  showTemplateModal = false;
+  showBackgroundModal = false;
+  showImageModal = false;
+  showTemplateCategoryModal = false;
+
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private route: ActivatedRoute,
+    private designerService: CardDesignerService,
+    private templateApiService: TemplateApiService
+  ) {}
+
+  ngOnInit(): void {
+    this.initializeDesigner();
+    this.setupSubscriptions();
+  }
+
+  ngAfterViewInit(): void {
+    // 設置畫布點擊事件
+    this.setupCanvasEvents();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  private initializeDesigner(): void {
+    this.cardId = this.route.snapshot.paramMap.get('id');
+    console.log('當前路由參數 - cardId:', this.cardId);
+    console.log('當前 URL:', window.location.href);
+
+    if (this.cardId) {
+      // 編輯模式
+      console.log('進入編輯模式，載入桌牌 ID:', this.cardId);
+      this.designerService.loadDesign(this.cardId);
+    } else {
+      // 新建模式
+      console.log('進入新建模式');
+      this.currentDesign = this.designerService.createNewDesign('新圖卡');
+      this.cardName = this.currentDesign.name;
+    }
+  }
+
+  // 頂部工具欄方法
+  startEditingName(): void {
+    this.isEditing = true;
+    // 等待DOM更新後聚焦
+    setTimeout(() => {
+      const input = document.querySelector('.card-designer__name-field') as HTMLInputElement;
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    });
+  }
+
+  enableNameEdit(event: Event): void {
+    if (!this.isEditing) {
+      this.isEditing = true;
+      setTimeout(() => {
+        const input = event.target as HTMLInputElement;
+        input.focus();
+        input.select();
+      });
+    }
+  }
+
+  saveCardName(): void {
+    this.isEditing = false;
+    if (this.currentDesign) {
+      this.currentDesign.name = this.cardName;
+      this.designerService.saveDesign();
+    }
+  }
+
+  // 產生縮圖（回傳 base64）
+  private async generateThumbnailBase64(): Promise<string | null> {
+    const canvasDiv = this.canvasElement?.nativeElement;
+    if (!canvasDiv) return null;
+    const canvas = await html2canvas(canvasDiv, { backgroundColor: null });
+    return canvas.toDataURL('image/png');
+  }
+
+  async saveCard(): Promise<void> {
+    const thumbnail = await this.generateThumbnailBase64();
+    this.designerService.saveDesign(thumbnail || undefined).subscribe({
+      next: (response) => {
+        console.log('桌牌儲存成功:', response);
+        alert('桌牌儲存成功！');
+      },
+      error: (error) => {
+        console.error('桌牌儲存失敗:', error);
+        alert('桌牌儲存失敗，請稍後再試。');
+      }
+    });
+  }
+
+  async exportAsPNG(): Promise<void> {
+    const canvasDiv = this.canvasElement?.nativeElement;
+    if (!canvasDiv) {
+      alert('無法匯出圖片，請稍後再試。');
+      return;
+    }
+
+    try {
+      // 等待字體載入完成
+      await this.ensureFontsLoaded();
+
+      // 使用html2canvas生成800x480的圖片
+      const canvas = await html2canvas(canvasDiv, {
+        backgroundColor: this.currentCanvasData?.background || '#ffffff',
+        width: 800,
+        height: 480,
+        scale: 1,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
+        // 確保字體正確渲染
+        foreignObjectRendering: false,
+        onclone: (clonedDoc) => {
+          // 在克隆文檔中確保字體樣式
+          const style = clonedDoc.createElement('style');
+          style.textContent = `
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+            * {
+              font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', 'Microsoft YaHei', sans-serif !important;
+            }
+          `;
+          clonedDoc.head.appendChild(style);
+        }
+      });
+
+      // 轉換為6色格式
+      const convertedCanvas = this.convertTo6Colors(canvas);
+
+      // 下載圖片
+      const link = document.createElement('a');
+      link.download = `${this.cardName}_${this.currentSide}面_800x480.png`;
+      link.href = convertedCanvas.toDataURL('image/png');
+      link.click();
+
+      alert('PNG圖片匯出成功！');
+    } catch (error) {
+      console.error('匯出PNG失敗:', error);
+      alert('匯出PNG失敗，請稍後再試。');
+    }
+  }
+
+  // 確保字體載入完成
+  private async ensureFontsLoaded(): Promise<void> {
+    // 如果瀏覽器支援 document.fonts API
+    if ('fonts' in document) {
+      try {
+        await document.fonts.ready;
+        console.log('字體載入完成');
+      } catch (error) {
+        console.warn('字體載入檢查失敗:', error);
+      }
+    }
+
+    // 額外等待確保字體完全載入
+    return new Promise(resolve => setTimeout(resolve, 500));
+  }
+
+  private convertTo6Colors(canvas: HTMLCanvasElement): HTMLCanvasElement {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return canvas;
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    // 6色調色盤
+    const palette = [
+      [0, 0, 0],       // 黑色
+      [255, 255, 255], // 白色
+      [0, 255, 0],     // 綠色
+      [0, 0, 255],     // 藍色
+      [255, 0, 0],     // 紅色
+      [255, 255, 0]    // 黃色
+    ];
+
+    // 計算顏色距離
+    const colorDistance = (c1: number[], c2: number[]): number => {
+      const dr = c1[0] - c2[0];
+      const dg = c1[1] - c2[1];
+      const db = c1[2] - c2[2];
+      return Math.sqrt(dr * dr + dg * dg + db * db);
+    };
+
+    // 找到最接近的顏色
+    const findNearestColor = (r: number, g: number, b: number): number[] => {
+      let minDistance = Infinity;
+      let nearestColor = palette[0];
+
+      for (const color of palette) {
+        const distance = colorDistance([r, g, b], color);
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestColor = color;
+        }
+      }
+
+      return nearestColor;
+    };
+
+    // 轉換每個像素
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      const nearestColor = findNearestColor(r, g, b);
+
+      data[i] = nearestColor[0];     // R
+      data[i + 1] = nearestColor[1]; // G
+      data[i + 2] = nearestColor[2]; // B
+      // Alpha保持不變
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
+  }
+
+  async saveAsTemplate(): Promise<void> {
+    if (!this.currentDesign) return;
+    this.showTemplateCategoryModal = true;
+  }
+
+  async onTemplateSaved(selection: TemplateCategorySelection): Promise<void> {
+    if (!this.currentDesign) {
+      console.error('當前設計為空，無法保存樣板');
+      alert('當前設計為空，無法保存樣板');
+      return;
+    }
+
+    try {
+      console.log('開始保存樣板，選擇:', selection);
+      console.log('當前設計:', this.currentDesign);
+
+      // 如果樣板名稱與當前桌牌名稱不同，更新桌牌名稱並同步到資料庫
+      if (selection.name !== this.cardName) {
+        console.log('更新桌牌名稱從', this.cardName, '到', selection.name);
+        this.cardName = selection.name;
+        this.currentDesign.name = selection.name;
+        this.designerService.saveDesign().subscribe({
+          next: () => {
+            console.log('桌牌名稱已同步到資料庫');
+          },
+          error: (error) => {
+            console.error('同步桌牌名稱失敗:', error);
+          }
+        });
+      }
+
+      // 生成800x640的截圖
+      console.log('開始生成樣板截圖...');
+      const thumbnail = await this.generateTemplateScreenshot();
+      if (!thumbnail) {
+        console.error('無法生成樣板截圖');
+        alert('無法生成樣板截圖，請稍後再試。');
+        return;
+      }
+      console.log('樣板截圖生成成功，大小:', thumbnail.length);
+
+      // 創建下載連結讓用戶保存圖片
+      const link = document.createElement('a');
+      link.download = `${selection.name}_800x640.png`;
+      link.href = thumbnail;
+      link.click();
+
+      // 準備保存樣板資訊到資料庫的數據
+      const templateData = {
+        name: selection.name,
+        description: `樣板：${selection.name}`,
+        thumbnailUrl: thumbnail, // Base64 圖片數據
+        layoutDataA: this.currentDesign.A || {},
+        layoutDataB: this.currentDesign.B || {},
+        dimensions: {
+          width: 800,
+          height: 640
+        },
+        isPublic: true,
+        category: selection.category || 'general'
+      };
+
+      console.log('準備發送到後端的樣板數據:', {
+        ...templateData,
+        thumbnailUrl: `[Base64 數據 ${thumbnail.length} 字符]` // 不顯示完整的 base64
+      });
+
+      // 調用API保存樣板到資料庫
+      this.templateApiService.createTemplate(templateData).subscribe({
+        next: (savedTemplate) => {
+          console.log('樣板保存成功:', savedTemplate);
+          alert('樣板保存成功！');
+        },
+        error: (error) => {
+          console.error('保存樣板失敗 - 詳細錯誤:', error);
+          console.error('錯誤狀態碼:', error.status);
+          console.error('錯誤訊息:', error.message);
+          console.error('錯誤回應:', error.error);
+          
+          let errorMessage = '保存樣板失敗';
+          if (error.error && error.error.message) {
+            errorMessage += `: ${error.error.message}`;
+          } else if (error.message) {
+            errorMessage += `: ${error.message}`;
+          }
+          
+          alert(errorMessage);
+        }
+      });
+
+    } catch (error) {
+      console.error('保存樣板過程中發生異常:', error);
+      alert('保存樣板失敗，請稍後再試。');
+    }
+  }
+
+  // 生成800x640的樣板截圖（A面）
+  private async generateTemplateScreenshot(): Promise<string | null> {
+    if (!this.currentDesign) return null;
+
+    // 暫時切換到A面進行截圖
+    const originalSide = this.currentSide;
+
+    try {
+      await this.ensureFontsLoaded();
+
+      this.designerService.switchSide('A');
+
+      // 等待DOM更新和圖片載入
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      const canvasDiv = this.canvasElement?.nativeElement;
+      if (!canvasDiv) {
+        console.error('找不到畫布元素');
+        return null;
+      }
+
+      // 等待背景圖片載入完成
+      await this.waitForBackgroundImages(canvasDiv);
+
+      // 取得背景設定
+      let backgroundColor: string | null = '#ffffff';
+      const currentBackground = this.currentDesign.A?.background;
+      
+      if (currentBackground) {
+        // 如果是純色背景
+        if (!currentBackground.includes('url(')) {
+          backgroundColor = currentBackground;
+        } else {
+          // 如果是圖片背景，使用透明背景讓html2canvas自動處理
+          backgroundColor = null;
+        }
+      }
+
+      console.log('開始生成截圖，背景設定:', currentBackground);
+
+      const canvas = await html2canvas(canvasDiv, {
+        backgroundColor: backgroundColor,
+        width: 800,
+        height: 640,
+        scale: 1,
+        useCORS: true,
+        allowTaint: false, // 改為false避免跨域問題
+        logging: true, // 暫時開啟日誌查看錯誤
+        foreignObjectRendering: false,
+        imageTimeout: 30000, // 增加圖片載入超時時間
+        removeContainer: true,
+        onclone: (clonedDoc, element) => {
+          // 在克隆文檔中確保字體和樣式
+          const style = clonedDoc.createElement('style');
+          style.textContent = `
+            @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
+            * {
+              font-family: 'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', 'Microsoft YaHei', sans-serif !important;
+            }
+          `;
+          clonedDoc.head.appendChild(style);
+
+          // 確保背景樣式正確應用
+          if (element && currentBackground) {
+            element.style.background = currentBackground;
+          }
+        }
+      });
+
+      const dataUrl = canvas.toDataURL('image/png');
+      console.log('截圖生成成功，大小:', dataUrl.length);
+      return dataUrl;
+    } catch (error) {
+      console.error('生成樣板截圖失敗 - 詳細錯誤:', error);
+      return null;
+    } finally {
+      // 恢復原來的面
+      this.designerService.switchSide(originalSide);
+    }
+  }
+
+  // 等待背景圖片載入完成
+  private async waitForBackgroundImages(element: HTMLElement): Promise<void> {
+    const backgroundImages = this.getBackgroundImages(element);
+    if (backgroundImages.length === 0) return;
+
+    console.log('等待背景圖片載入:', backgroundImages);
+
+    const loadPromises = backgroundImages.map(imageUrl => {
+      return new Promise<void>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous'; // 處理跨域
+        img.onload = () => {
+          console.log('背景圖片載入成功:', imageUrl);
+          resolve();
+        };
+        img.onerror = (error) => {
+          console.warn('背景圖片載入失敗:', imageUrl, error);
+          resolve(); // 即使失敗也繼續
+        };
+        img.src = imageUrl;
+      });
+    });
+
+    await Promise.all(loadPromises);
+  }
+
+  // 從元素中提取背景圖片URL
+  private getBackgroundImages(element: HTMLElement): string[] {
+    const urls: string[] = [];
+    const computedStyle = window.getComputedStyle(element);
+    const backgroundImage = computedStyle.backgroundImage;
+
+    if (backgroundImage && backgroundImage !== 'none') {
+      const urlMatches = backgroundImage.match(/url\(["']?([^"')]+)["']?\)/g);
+      if (urlMatches) {
+        urlMatches.forEach(match => {
+          const url = match.replace(/url\(["']?([^"')]+)["']?\)/, '$1');
+          urls.push(url);
+        });
+      }
+    }
+
+    return urls;
+  }
+
+  // 修改後的重置方法：根據同步狀態決定重置範圍
+  resetCurrentSide(): void {
+    const resetMessage = this.isBSameAsA 
+      ? '確定要重置A面和B面的所有內容嗎？此操作無法撤銷。'
+      : `確定要重置${this.currentSide}面的所有內容嗎？此操作無法撤銷。`;
+    
+    if (confirm(resetMessage)) {
+      if (this.isBSameAsA) {
+        // 如果B面與A面相同，重置AB兩面
+        this.designerService.clearBothSides();
+      } else {
+        // 否則只重置當前面
+        this.designerService.clearCurrentSide();
+      }
+    }
+  }
+
+  // 模式切換
+  switchToSide(side: 'A' | 'B'): void {
+    this.designerService.switchSide(side);
+  }
+
+  toggleBSameAsA(): void {
+    this.isBSameAsA = !this.isBSameAsA;
+    this.designerService.setSyncAB(this.isBSameAsA);
+    if (this.isBSameAsA) {
+      this.designerService.copyAToB();
+    }
+  }
+
+  // 基本互動方法
+  applyTemplate(): void {
+    console.log('應用模板');
+    // TODO: 實現模板套用
+  }
+
+  setBackground(): void {
+    console.log('設定背景');
+    // TODO: 實現背景設定
+  }
+
+  addBlock(): void {
+    console.log('添加區塊');
+    // TODO: 實現添加區塊
+  }
+
+  // 訂閱和事件
+  private setupSubscriptions(): void {
+    // 監聽設計變化
+    this.designerService.currentDesign$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(design => {
+        this.currentDesign = design;
+        if (design) {
+          this.cardName = design.name;
+          this.updateCanvasElements();
+        }
+      });
+
+    // 監聽當前側面變化
+    this.designerService.currentSide$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(side => {
+        this.currentSide = side;
+        this.updateCanvasElements();
+      });
+
+    // 監聽選擇元素變化
+    this.designerService.selectedElement$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(id => {
+        this.selectedElementId = id;
+      });
+  }
+
+  private setupCanvasEvents(): void {
+    if (this.canvasElement?.nativeElement) {
+      const canvas = this.canvasElement.nativeElement;
+
+      // 畫布點擊事件（取消選擇）
+      canvas.addEventListener('click', (event: MouseEvent) => {
+        if (event.target === canvas) {
+          this.closeToolbarSignal++; // 關閉工具列
+          this.designerService.clearSelection();
+        }
+      });
+    }
+  }
+
+  // 更新畫布元素
+  private updateCanvasElements(): void {
+    const canvasData = this.designerService.getCurrentCanvasData();
+    this.currentCanvasData = canvasData;
+    this.canvasElements = canvasData?.elements || [];
+  }
+
+  // 用於ngFor的跟蹤函數
+  trackByElementId(index: number, element: any): string {
+    return element.id;
+  }
+
+  // 元素操作方法
+  onElementSelected(id: string): void {
+    this.designerService.selectElement(id);
+    const el = document.getElementById('element-' + id);
+    const element = this.canvasElements.find(e => e.id === id);
+    if (el && element && element.type === 'text') {
+      const rect = el.getBoundingClientRect();
+      const toolbarHeight = 60; // 包含工具列本身高度和margin
+
+      // 水平置中於元素中心
+      let x = rect.left + rect.width / 2;
+
+      // 計算上方位置
+      let y = rect.top - toolbarHeight;
+
+      // 如果工具列會超出頁面上緣，則改為顯示在元素下方
+      if (y < 10) {
+        y = rect.bottom + 10; // 顯示在元素下方
+      }
+
+      this.toolbarPosition = { x, y };
+      this.showTextToolbar = true;
+      this.selectedTextElementId = id;
+      this.currentTextStyle = (element.style || {}) as TextStyle;
+      this.selectedElementType = 'text';
+    } else {
+      this.showTextToolbar = false;
+      this.selectedTextElementId = null;
+    }
+  }
+
+  onElementMoved(data: { id: string, position: any }): void {
+    this.designerService.moveElement(data.id, data.position);
+    if (this.selectedTextElementId === data.id) {
+      this.updateToolbarPositionById(data.id);
+    }
+  }
+
+  onElementResized(data: { id: string, size: any }): void {
+    this.designerService.resizeElement(data.id, data.size);
+    if (this.selectedTextElementId === data.id) {
+      this.updateToolbarPositionById(data.id);
+    }
+  }
+
+  onElementUpdated(data: { id: string, updates: any }): void {
+    this.designerService.updateElement(data.id, data.updates);
+    if (this.selectedTextElementId === data.id) {
+      this.updateToolbarPositionById(data.id);
+    }
+  }
+
+  updateToolbarPositionById(id: string) {
+    const el = document.getElementById('element-' + id);
+    const element = this.canvasElements.find(e => e.id === id);
+    if (el && element && element.type === 'text') {
+      const rect = el.getBoundingClientRect();
+      const toolbarHeight = 60; // 包含工具列本身高度和margin
+
+      // 水平置中於元素中心
+      let x = rect.left + rect.width / 2;
+
+      // 計算上方位置
+      let y = rect.top - toolbarHeight;
+
+      // 如果工具列會超出頁面上緣，則改為顯示在元素下方
+      if (y < 10) {
+        y = rect.bottom + 10; // 顯示在元素下方
+      }
+
+      this.toolbarPosition = { x, y };
+    }
+  }
+
+  onTextStyleChange(newStyle: TextStyle) {
+    if (this.selectedTextElementId) {
+      this.onElementUpdated({ id: this.selectedTextElementId, updates: { style: newStyle } });
+      this.currentTextStyle = newStyle;
+    }
+  }
+
+  onCloseTextToolbar() {
+    this.showTextToolbar = false;
+    this.selectedTextElementId = null;
+  }
+
+  onDeleteElement() {
+    if (this.selectedTextElementId) {
+      this.designerService.deleteElement(this.selectedTextElementId);
+      this.showTextToolbar = false;
+      this.selectedTextElementId = null;
+    }
+  }
+
+  // 新的統一元素添加方法
+  onAddElement(data: { type: string, options?: any }): void {
+    let element: any;
+
+    switch (data.type) {
+      case 'text':
+        element = this.designerService.createTextElement();
+        break;
+      case 'image':
+        element = this.designerService.createImageElement('');
+        break;
+      case 'shape':
+        element = this.designerService.createShapeElement(
+          data.options?.shapeType || 'rectangle'
+        );
+        break;
+      case 'qrcode':
+        element = this.designerService.createQRCodeElement('@https://example.com');
+        break;
+      default:
+        console.warn('未知元素類型:', data.type);
+        return;
+    }
+
+    if (element) {
+      this.designerService.addElement(element);
+    }
+  }
+
+  onAddTemplate(templateId: string): void {
+    // 根據模板ID套用預設內容
+    let template: any;
+    if (templateId === 'namecard') {
+      template = {
+        name: '姓名牌',
+        A: {
+          elements: [
+            {
+              type: 'text',
+              id: 'el_name',
+              content: '王小明',
+              position: { x: 300, y: 200 },
+              size: { width: 200, height: 60 },
+              style: {
+                fontSize: 32,
+                fontFamily: 'Arial',
+                fontWeight: 'bold',
+                color: '#222',
+                textAlign: 'center',
+                backgroundColor: 'transparent',
+                borderRadius: 0,
+                padding: 0
+              },
+              zIndex: 1
+            },
+            {
+              type: 'text',
+              id: 'el_title',
+              content: '工程師',
+              position: { x: 300, y: 270 },
+              size: { width: 200, height: 40 },
+              style: {
+                fontSize: 20,
+                fontFamily: 'Arial',
+                fontWeight: 'normal',
+                color: '#666',
+                textAlign: 'center',
+                backgroundColor: 'transparent',
+                borderRadius: 0,
+                padding: 0
+              },
+              zIndex: 2
+            }
+          ],
+          background: '#fff',
+          width: 800,
+          height: 500
+        },
+        B: {
+          elements: [],
+          background: '#fff',
+          width: 800,
+          height: 500
+        }
+      };
+    } else if (templateId === 'meeting') {
+      template = {
+        name: '會議室',
+        A: {
+          elements: [
+            {
+              type: 'text',
+              id: 'el_room',
+              content: '會議室 301',
+              position: { x: 250, y: 180 },
+              size: { width: 300, height: 60 },
+              style: {
+                fontSize: 30,
+                fontFamily: 'Arial',
+                fontWeight: 'bold',
+                color: '#1976d2',
+                textAlign: 'center',
+                backgroundColor: 'transparent',
+                borderRadius: 0,
+                padding: 0
+              },
+              zIndex: 1
+            },
+            {
+              type: 'text',
+              id: 'el_info',
+              content: '預約時段：09:00-12:00',
+              position: { x: 250, y: 260 },
+              size: { width: 300, height: 40 },
+              style: {
+                fontSize: 18,
+                fontFamily: 'Arial',
+                fontWeight: 'normal',
+                color: '#333',
+                textAlign: 'center',
+                backgroundColor: 'transparent',
+                borderRadius: 0,
+                padding: 0
+              },
+              zIndex: 2
+            }
+          ],
+          background: '#f5faff',
+          width: 800,
+          height: 500
+        },
+        B: {
+          elements: [],
+          background: '#f5faff',
+          width: 800,
+          height: 500
+        }
+      };
+    } else if (templateId === 'event') {
+      template = {
+        name: '活動',
+        A: {
+          elements: [
+            {
+              type: 'text',
+              id: 'el_event',
+              content: 'AI 創新論壇',
+              position: { x: 250, y: 180 },
+              size: { width: 300, height: 60 },
+              style: {
+                fontSize: 28,
+                fontFamily: 'Arial',
+                fontWeight: 'bold',
+                color: '#7b1fa2',
+                textAlign: 'center',
+                backgroundColor: 'transparent',
+                borderRadius: 0,
+                padding: 0
+              },
+              zIndex: 1
+            },
+            {
+              type: 'text',
+              id: 'el_time',
+              content: '2024/07/01 14:00',
+              position: { x: 250, y: 260 },
+              size: { width: 300, height: 40 },
+              style: {
+                fontSize: 18,
+                fontFamily: 'Arial',
+                fontWeight: 'normal',
+                color: '#333',
+                textAlign: 'center',
+                backgroundColor: 'transparent',
+                borderRadius: 0,
+                padding: 0
+              },
+              zIndex: 2
+            }
+          ],
+          background: '#fff8f5',
+          width: 800,
+          height: 500
+        },
+        B: {
+          elements: [],
+          background: '#fff8f5',
+          width: 800,
+          height: 500
+        }
+      };
+    } else {
+      return;
+    }
+    // 套用模板內容到當前設計，並同步 service
+    const newDesign = {
+      id: 'template_' + templateId + '_' + Date.now(),
+      name: template.name,
+      A: template.A,
+      B: template.B,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      createdBy: 'template',
+      isTemplate: false
+    };
+    this.designerService.setDesign(newDesign);
+    this.currentSide = 'A';
+    this.updateCanvasElements();
+  }
+
+  onAlignElements(alignType: string): void {
+    console.log('對齊元素:', alignType);
+    // TODO: 實現元素對齊
+  }
+
+  onLayerAction(action: string): void {
+    console.log('圖層操作:', action);
+    // TODO: 實現圖層操作
+  }
+
+  // 畫布輔助方法
+  getCanvasNativeElement(): HTMLDivElement | null {
+    return this.canvasElement?.nativeElement || null;
+  }
+
+  // 獲取選中的文字元素DOM
+  getSelectedElement(): HTMLElement | null {
+    if (!this.selectedTextElementId) return null;
+    return document.getElementById('element-' + this.selectedTextElementId);
+  }
+
+  // 檢查是否有背景
+  hasBackground(): boolean {
+    const background = this.currentCanvasData?.background;
+    return background !== undefined && background !== '#ffffff' && background !== 'transparent';
+  }
+
+  onSyncABChange(checked: boolean): void {
+    if (checked) {
+      if (confirm('啟用同步會清除B面現有內容，確定要同步嗎？')) {
+        this.isBSameAsA = true;
+        this.designerService.setSyncAB(true);
+      }
+    } else {
+      this.isBSameAsA = false;
+      this.designerService.setSyncAB(false);
+    }
+  }
+
+  // 彈跳視窗處理方法
+  onTemplateSelected(template: Template): void {
+    console.log('選擇的樣板:', template);
+
+    if (!this.currentDesign) return;
+
+    // 從 API 獲取完整的樣板資料
+    this.templateApiService.getTemplate(template.id).subscribe({
+      next: (fullTemplate) => {
+        // 套用樣板內容到當前設計
+        this.currentDesign!.A = fullTemplate.layoutDataA;
+        this.currentDesign!.B = fullTemplate.layoutDataB;
+
+        // 更新設計服務
+        this.designerService.setDesign(this.currentDesign!);
+
+        // 強制更新畫布元素
+        this.updateCanvasElements();
+
+        // 觸發重新渲染
+        setTimeout(() => {
+          this.updateCanvasElements();
+        }, 100);
+
+        console.log('樣板套用成功');
+      },
+      error: (error) => {
+        console.error('載入樣板詳細資料失敗:', error);
+        alert('套用樣板失敗，請稍後再試。');
+      }
+    });
+  }
+
+  onBackgroundSelected(background: BackgroundOption): void {
+    console.log('選擇的背景:', background);
+    
+    if (!this.currentDesign) return;
+
+    // 更新當前設計的背景
+    let backgroundStyle: string;
+    
+    if (background.type === 'image') {
+      // 處理圖片背景：提取真實的圖片URL
+      const imageUrl = background.preview || background.value;
+      // 如果是url()格式，提取其中的URL
+      const urlMatch = imageUrl.match(/url\(([^)]+)\)/);
+      const actualUrl = urlMatch ? urlMatch[1].replace(/['"]/g, '') : imageUrl;
+      backgroundStyle = `url("${actualUrl}") center/cover no-repeat`;
+    } else {
+      // 純色背景
+      backgroundStyle = background.value;
+    }
+
+    // 如果啟用AB面同步，同時套用到兩面
+    if (this.isBSameAsA) {
+      this.currentDesign.A.background = backgroundStyle;
+      this.currentDesign.B.background = backgroundStyle;
+    } else {
+      // 只套用到當前面
+      if (this.currentSide === 'A') {
+        this.currentDesign.A.background = backgroundStyle;
+      } else {
+        this.currentDesign.B.background = backgroundStyle;
+      }
+    }
+
+    // 更新設計服務
+    this.designerService.setDesign(this.currentDesign);
+
+    // 強制更新畫布
+    this.updateCanvasElements();
+
+    console.log('背景套用成功:', backgroundStyle);
+  }
+
+  onImageSelected(image: ImageOption): void {
+    console.log('選擇的圖片:', image);
+    
+    if (!this.currentDesign) return;
+
+    // 創建新的圖片元素
+    const newImageElement: CanvasElement = {
+      type: 'image',
+      id: 'img_' + Date.now(),
+      src: image.url, // 圖片元素使用src屬性存儲圖片URL
+      alt: image.name || '圖片',
+      position: { x: 100, y: 100 },
+      size: { width: 200, height: 150 },
+      style: {
+        borderRadius: 0,
+        opacity: 1
+      },
+      zIndex: this.getNextZIndex()
+    };
+
+    // 添加到當前面的元素列表
+    if (this.currentSide === 'A') {
+      this.currentDesign.A.elements.push(newImageElement);
+    } else {
+      this.currentDesign.B.elements.push(newImageElement);
+    }
+
+    // 如果啟用AB面同步，也添加到另一面
+    if (this.isBSameAsA) {
+      const syncElement = { ...newImageElement, id: 'img_sync_' + Date.now() };
+      if (this.currentSide === 'A') {
+        this.currentDesign.B.elements.push(syncElement);
+      } else {
+        this.currentDesign.A.elements.push(syncElement);
+      }
+    }
+
+    // 更新設計服務
+    this.designerService.setDesign(this.currentDesign);
+
+    // 更新畫布元素
+    this.updateCanvasElements();
+
+    console.log('圖片元素添加成功');
+  }
+
+  private getNextZIndex(): number {
+    const currentElements = this.currentSide === 'A' 
+      ? this.currentDesign?.A.elements || []
+      : this.currentDesign?.B.elements || [];
+    
+    const maxZ = Math.max(0, ...currentElements.map(el => el.zIndex || 0));
+    return maxZ + 1;
+  }
+}

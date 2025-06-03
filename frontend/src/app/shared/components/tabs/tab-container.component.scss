@@ -1,0 +1,86 @@
+.tab-container {
+  &__tabs {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    padding: 0;
+    margin-bottom: 0;
+    position: relative;
+    border-bottom: 1px solid #2196f3;
+  }
+
+  &__tabs-left {
+    display: flex;
+    gap: 0;
+    
+    // 重置 tag-button 在頁籤模式下的樣式
+    ::ng-deep sn-tag-button {
+      .tag-button {
+        border-radius: 8px 8px 0 0;
+        background: #f0f1f3;
+        border: 2px solid #e1e8ed;
+        border-bottom: none;
+        position: relative;
+        color: #999;
+        font-weight: 500;
+        transition: all 0.22s cubic-bezier(.4,2,.6,1);
+        margin-bottom: -2px;
+        padding: 0.75rem 1.5rem;
+        box-shadow: none;
+        transform: scale(1);
+        .tag-button__icon {
+          color: #bbb;
+          transition: color 0.2s, transform 0.2s;
+        }
+        &.tag-button--active {
+          background: #f8f9fa;
+          border-color: #2196f3;
+          color: #2196f3;
+          font-weight: 700;
+          box-shadow: 0 4px 16px rgba(33, 150, 243, 0.08);
+          z-index: 2;
+          border-bottom: 1px solid #f8f9fa;
+          .tag-button__icon {
+            color: #2196f3;
+            transform: none;
+          }
+        }
+        &:not(.tag-button--active) {
+          background: #f0f1f3;
+          border-color: #e1e8ed;
+          color: #999;
+          border-bottom: 1px solid #2196f3;
+          .tag-button__icon {
+            color: #bbb;
+          }
+          &:hover {
+            background: #e5e7ea;
+            border-color: #2196f3;
+            color: #2196f3;
+            transform: translateY(-3px) scale(1.04);
+            box-shadow: 0 6px 18px -6px rgba(33, 150, 243, 0.18);
+            z-index: 1;
+            .tag-button__icon {
+              color: #2196f3;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  &__tabs-right {
+    display: flex;
+    align-items: center;
+    gap: 2rem !important;
+    margin-bottom: 0.75rem;
+    padding: 0 0.5rem;
+  }
+
+  &__content {
+    padding-top: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+} 

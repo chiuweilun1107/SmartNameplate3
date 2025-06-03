@@ -1,0 +1,254 @@
+<div class="live-preview">
+  <div class="live-preview__container" [class.fullscreen]="isFullscreen">
+    <!-- A面預覽 -->
+    <div class="live-preview__canvas-wrapper">
+      <div class="live-preview__canvas">
+        
+        <!-- 渲染A面元素 -->
+        <div *ngFor="let element of getSortedElements('A')" 
+             class="live-preview__element"
+             [style.left.px]="getScaledPosition(element.position.x)"
+             [style.top.px]="getScaledPosition(element.position.y)"
+             [style.width.px]="getScaledSize(element.size.width)"
+             [style.height.px]="getScaledSize(element.size.height)"
+             [style.z-index]="element.zIndex">
+          
+          <!-- 元素內容渲染 -->
+          <div [ngSwitch]="element.type" class="live-preview__element-content">
+            
+            <!-- 文字元素 -->
+            <div *ngSwitchCase="'text'" 
+                 class="live-preview__text"
+                 [style.fontSize.px]="getScaledFontSize(getTextElement(element).style.fontSize)"
+                 [style.color]="getTextElement(element).style.color"
+                 [style.fontFamily]="getTextElement(element).style.fontFamily"
+                 [style.fontWeight]="getTextElement(element).style.fontWeight"
+                 [style.textAlign]="getTextElement(element).style.textAlign"
+                 [style.backgroundColor]="getTextElement(element).style.backgroundColor"
+                 [style.borderRadius.px]="getScaledValue(getTextElement(element).style.borderRadius)"
+                 [style.padding.px]="getScaledValue(getTextElement(element).style.padding)">
+              {{ getTextElement(element).content }}
+            </div>
+            
+            <!-- 圖片元素 -->
+            <img *ngSwitchCase="'image'" 
+                 class="live-preview__image"
+                 [src]="getImageElement(element).src"
+                 [alt]="getImageElement(element).alt"
+                 [style.borderRadius.px]="getScaledValue(getImageElement(element).style.borderRadius)"
+                 [style.opacity]="getImageElement(element).style.opacity"
+                 [style.filter]="getImageElement(element).style.filter">
+            
+            <!-- 形狀元素 -->
+            <ng-container *ngSwitchCase="'shape'">
+              <!-- 矩形 -->
+              <div *ngIf="getShapeElement(element).shapeType === 'rectangle'"
+                   class="live-preview__shape live-preview__shape--rectangle"
+                   [style.backgroundColor]="getShapeElement(element).style.backgroundColor"
+                   [style.borderColor]="getShapeElement(element).style.borderColor"
+                   [style.borderWidth.px]="getScaledValue(getShapeElement(element).style.borderWidth)"
+                   [style.borderStyle]="getShapeElement(element).style.borderWidth ? 'solid' : 'none'"
+                   [style.borderRadius.px]="getScaledValue(getShapeElement(element).style.borderRadius)">
+              </div>
+              <!-- 圓形 -->
+              <div *ngIf="getShapeElement(element).shapeType === 'circle'"
+                   class="live-preview__shape live-preview__shape--circle"
+                   [style.backgroundColor]="getShapeElement(element).style.backgroundColor"
+                   [style.borderColor]="getShapeElement(element).style.borderColor"
+                   [style.borderWidth.px]="getScaledValue(getShapeElement(element).style.borderWidth)"
+                   [style.borderStyle]="getShapeElement(element).style.borderWidth ? 'solid' : 'none'">
+              </div>
+              <!-- 直線（SVG） -->
+              <svg *ngIf="getShapeElement(element).shapeType === 'line'"
+                   class="live-preview__shape"
+                   [attr.width]="getScaledSize(element.size.width)"
+                   [attr.height]="getScaledSize(element.size.height)"
+                   [attr.viewBox]="'0 0 ' + getScaledSize(element.size.width) + ' ' + getScaledSize(element.size.height)">
+                <line x1="0"
+                      [attr.y1]="getScaledSize(element.size.height) / 2"
+                      [attr.x2]="getScaledSize(element.size.width)"
+                      [attr.y2]="getScaledSize(element.size.height) / 2"
+                      [attr.stroke]="getShapeElement(element).style.backgroundColor"
+                      [attr.stroke-width]="getScaledSize(element.size.height)"
+                      stroke-linecap="round" />
+              </svg>
+              <!-- 三角形（SVG） -->
+              <svg *ngIf="getShapeElement(element).shapeType === 'triangle'"
+                   class="live-preview__shape"
+                   [attr.width]="getScaledSize(element.size.width)"
+                   [attr.height]="getScaledSize(element.size.height)"
+                   viewBox="0 0 100 100">
+                <polygon points="50,5 5,95 95,95"
+                         [attr.fill]="getShapeElement(element).style.backgroundColor"
+                         [attr.stroke]="getShapeElement(element).style.borderColor"
+                         [attr.stroke-width]="getScaledValue(getShapeElement(element).style.borderWidth || 0)" />
+              </svg>
+              <!-- 星形（SVG） -->
+              <svg *ngIf="getShapeElement(element).shapeType === 'star'"
+                   class="live-preview__shape"
+                   [attr.width]="getScaledSize(element.size.width)"
+                   [attr.height]="getScaledSize(element.size.height)"
+                   viewBox="0 0 100 100">
+                <polygon points="50,5 61,35 98,35 68,57 79,91 50,70 21,91 32,57 2,35 39,35"
+                         [attr.fill]="getShapeElement(element).style.backgroundColor"
+                         [attr.stroke]="getShapeElement(element).style.borderColor"
+                         [attr.stroke-width]="getScaledValue(getShapeElement(element).style.borderWidth || 0)" />
+              </svg>
+              <!-- 其他形狀（保留 clip-path 實作） -->
+              <div *ngIf="getShapeElement(element).shapeType !== 'rectangle' && getShapeElement(element).shapeType !== 'circle' && getShapeElement(element).shapeType !== 'line' && getShapeElement(element).shapeType !== 'triangle' && getShapeElement(element).shapeType !== 'star'"
+                   class="live-preview__shape"
+                   [ngClass]="'live-preview__shape--' + getShapeElement(element).shapeType"
+                   [style.backgroundColor]="getShapeElement(element).style.backgroundColor"
+                   [style.borderColor]="getShapeElement(element).style.borderColor"
+                   [style.borderWidth.px]="getScaledValue(getShapeElement(element).style.borderWidth)"
+                   [style.borderStyle]="getShapeElement(element).style.borderWidth ? 'solid' : 'none'">
+              </div>
+            </ng-container>
+            
+            <!-- QR碼元素 -->
+            <div *ngSwitchCase="'qrcode'"
+                 class="live-preview__qrcode"
+                 [style.backgroundColor]="getQRCodeElement(element).style.backgroundColor">
+              <div class="live-preview__qrcode-placeholder">QR</div>
+            </div>
+            
+          </div>
+        </div>
+        
+        <!-- A面空白預覽 -->
+        <div *ngIf="!getSortedElements('A').length" class="live-preview__empty">
+          <mat-icon class="live-preview__empty-icon">preview</mat-icon>
+          <p class="live-preview__empty-text">A面預覽</p>
+          <span class="live-preview__empty-hint">添加元素後即可預覽</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- B面預覽 -->
+    <div class="live-preview__canvas-wrapper">
+      <div class="live-preview__canvas">
+        
+        <!-- 渲染B面元素 -->
+        <div *ngFor="let element of getSortedElements('B')" 
+             class="live-preview__element"
+             [style.left.px]="getScaledPosition(element.position.x)"
+             [style.top.px]="getScaledPosition(element.position.y)"
+             [style.width.px]="getScaledSize(element.size.width)"
+             [style.height.px]="getScaledSize(element.size.height)"
+             [style.z-index]="element.zIndex">
+          
+          <!-- 元素內容渲染 (與A面相同) -->
+          <div [ngSwitch]="element.type" class="live-preview__element-content">
+
+            <!-- 文字元素 -->
+            <div *ngSwitchCase="'text'" 
+                 class="live-preview__text"
+                 [style.fontSize.px]="getScaledFontSize(getTextElement(element).style.fontSize)"
+                 [style.color]="getTextElement(element).style.color"
+                 [style.fontFamily]="getTextElement(element).style.fontFamily"
+                 [style.fontWeight]="getTextElement(element).style.fontWeight"
+                 [style.textAlign]="getTextElement(element).style.textAlign"
+                 [style.backgroundColor]="getTextElement(element).style.backgroundColor"
+                 [style.borderRadius.px]="getScaledValue(getTextElement(element).style.borderRadius)"
+                 [style.padding.px]="getScaledValue(getTextElement(element).style.padding)">
+              {{ getTextElement(element).content }}
+            </div>
+            
+            <!-- 圖片元素 -->
+            <img *ngSwitchCase="'image'" 
+                 class="live-preview__image"
+                 [src]="getImageElement(element).src"
+                 [alt]="getImageElement(element).alt"
+                 [style.borderRadius.px]="getScaledValue(getImageElement(element).style.borderRadius)"
+                 [style.opacity]="getImageElement(element).style.opacity"
+                 [style.filter]="getImageElement(element).style.filter">
+            
+            <!-- 形狀元素 -->
+            <ng-container *ngSwitchCase="'shape'">
+              <!-- 矩形 -->
+              <div *ngIf="getShapeElement(element).shapeType === 'rectangle'"
+                   class="live-preview__shape live-preview__shape--rectangle"
+                   [style.backgroundColor]="getShapeElement(element).style.backgroundColor"
+                   [style.borderColor]="getShapeElement(element).style.borderColor"
+                   [style.borderWidth.px]="getScaledValue(getShapeElement(element).style.borderWidth)"
+                   [style.borderStyle]="getShapeElement(element).style.borderWidth ? 'solid' : 'none'"
+                   [style.borderRadius.px]="getScaledValue(getShapeElement(element).style.borderRadius)">
+              </div>
+              <!-- 圓形 -->
+              <div *ngIf="getShapeElement(element).shapeType === 'circle'"
+                   class="live-preview__shape live-preview__shape--circle"
+                   [style.backgroundColor]="getShapeElement(element).style.backgroundColor"
+                   [style.borderColor]="getShapeElement(element).style.borderColor"
+                   [style.borderWidth.px]="getScaledValue(getShapeElement(element).style.borderWidth)"
+                   [style.borderStyle]="getShapeElement(element).style.borderWidth ? 'solid' : 'none'">
+              </div>
+              <!-- 直線（SVG） -->
+              <svg *ngIf="getShapeElement(element).shapeType === 'line'"
+                   class="live-preview__shape"
+                   [attr.width]="getScaledSize(element.size.width)"
+                   [attr.height]="getScaledSize(element.size.height)"
+                   [attr.viewBox]="'0 0 ' + getScaledSize(element.size.width) + ' ' + getScaledSize(element.size.height)">
+                <line x1="0"
+                      [attr.y1]="getScaledSize(element.size.height) / 2"
+                      [attr.x2]="getScaledSize(element.size.width)"
+                      [attr.y2]="getScaledSize(element.size.height) / 2"
+                      [attr.stroke]="getShapeElement(element).style.backgroundColor"
+                      [attr.stroke-width]="getScaledSize(element.size.height)"
+                      stroke-linecap="round" />
+              </svg>
+              <!-- 三角形（SVG） -->
+              <svg *ngIf="getShapeElement(element).shapeType === 'triangle'"
+                   class="live-preview__shape"
+                   [attr.width]="getScaledSize(element.size.width)"
+                   [attr.height]="getScaledSize(element.size.height)"
+                   viewBox="0 0 100 100">
+                <polygon points="50,5 5,95 95,95"
+                         [attr.fill]="getShapeElement(element).style.backgroundColor"
+                         [attr.stroke]="getShapeElement(element).style.borderColor"
+                         [attr.stroke-width]="getScaledValue(getShapeElement(element).style.borderWidth || 0)" />
+              </svg>
+              <!-- 星形（SVG） -->
+              <svg *ngIf="getShapeElement(element).shapeType === 'star'"
+                   class="live-preview__shape"
+                   [attr.width]="getScaledSize(element.size.width)"
+                   [attr.height]="getScaledSize(element.size.height)"
+                   viewBox="0 0 100 100">
+                <polygon points="50,5 61,35 98,35 68,57 79,91 50,70 21,91 32,57 2,35 39,35"
+                         [attr.fill]="getShapeElement(element).style.backgroundColor"
+                         [attr.stroke]="getShapeElement(element).style.borderColor"
+                         [attr.stroke-width]="getScaledValue(getShapeElement(element).style.borderWidth || 0)" />
+              </svg>
+              <!-- 其他形狀（保留 clip-path 實作） -->
+              <div *ngIf="getShapeElement(element).shapeType !== 'rectangle' && getShapeElement(element).shapeType !== 'circle' && getShapeElement(element).shapeType !== 'line' && getShapeElement(element).shapeType !== 'triangle' && getShapeElement(element).shapeType !== 'star'"
+                   class="live-preview__shape"
+                   [ngClass]="'live-preview__shape--' + getShapeElement(element).shapeType"
+                   [style.backgroundColor]="getShapeElement(element).style.backgroundColor"
+                   [style.borderColor]="getShapeElement(element).style.borderColor"
+                   [style.borderWidth.px]="getScaledValue(getShapeElement(element).style.borderWidth)"
+                   [style.borderStyle]="getShapeElement(element).style.borderWidth ? 'solid' : 'none'">
+              </div>
+            </ng-container>
+            
+            <!-- QR碼元素 -->
+            <div *ngSwitchCase="'qrcode'"
+                 class="live-preview__qrcode"
+                 [style.backgroundColor]="getQRCodeElement(element).style.backgroundColor"
+                 [style.borderColor]="getQRCodeElement(element).style.borderColor"
+                 [style.borderWidth.px]="getScaledValue(getQRCodeElement(element).style.borderWidth)"
+                 [style.borderStyle]="getQRCodeElement(element).style.borderWidth ? 'solid' : 'none'"
+                 [style.borderRadius.px]="getScaledValue(getQRCodeElement(element).style.borderRadius)">
+              <div class="live-preview__qrcode-placeholder">QR</div>
+            </div>
+            
+          </div>
+        </div>
+        <!-- B面空白預覽 -->
+        <div *ngIf="!getSortedElements('B').length" class="live-preview__empty">
+          <mat-icon class="live-preview__empty-icon">preview</mat-icon>
+          <p class="live-preview__empty-text">B面預覽</p>
+          <span class="live-preview__empty-hint">添加元素後即可預覽</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,93 @@
+@import '../../../../styles/abstracts/variables';
+@import '../../../../styles/abstracts/mixins';
+
+.home__feature-card {
+  background: white;
+  border-radius: $border-radius-lg;
+  padding: $spacing-xl;
+  transition: $transition-medium;
+  border: 1.5px solid rgba($color-primary, 0.1);
+  
+  &:hover {
+    transform: translateY(-4px);
+  }
+  
+  // 主題色 hover 外框
+  &.design-hover:hover {
+    border-color: #667eea;
+  }
+  &.groups-hover:hover {
+    border-color: #f093fb;
+  }
+  &.deploy-hover:hover {
+    border-color: #00c6fb;
+  }
+  &.admin-hover:hover {
+    border-color: #43e97b;
+  }
+  @include respond-to(md) {
+    padding: $spacing-lg;
+  }
+}
+
+.home__feature-content {
+  text-align: center;
+}
+
+.home__feature-icon {
+  @include flex(row, center, center);
+  width: 64px;
+  height: 64px;
+  margin: 0 auto $spacing-lg;
+  border-radius: $border-radius-lg;
+  &--design {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  &--groups {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  }
+  &--admin {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+  }
+  &--deploy {
+    background: linear-gradient(135deg, #00c6fb 0%, #005bea 100%);
+  }
+}
+
+.home__feature-icon-image {
+  width: 32px;
+  height: 32px;
+  filter: brightness(0) invert(1);
+}
+
+.home__feature-title {
+  @include typography($font-size-xl, $font-weight-semibold);
+  color: $text-color-primary;
+  margin: 0 0 $spacing-sm 0;
+}
+
+.home__feature-description {
+  @include typography($font-size-sm, $font-weight-regular);
+  color: $text-color-secondary;
+  margin: 0 0 $spacing-lg 0;
+  line-height: 1.6;
+}
+
+.home__feature-link {
+  @include flex(row, center, center);
+  @include typography($font-size-sm, $font-weight-medium);
+  color: $color-primary;
+  text-decoration: none;
+  gap: 4px;
+  transition: $transition-quick;
+  &:hover {
+    color: darken($color-primary, 10%);
+    gap: 8px;
+  }
+}
+
+.home__feature-arrow {
+  width: 16px;
+  height: 16px;
+  transition: $transition-quick;
+} 

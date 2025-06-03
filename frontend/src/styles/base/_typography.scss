@@ -1,0 +1,23 @@
+// Typography styles
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Noto Sans TC', sans-serif;
+  font-weight: $font-weight-medium;
+  line-height: 1.2;
+  margin-bottom: $spacing-sm;
+}
+
+h1 { @include typography($font-size-xxl, $font-weight-bold); }
+h2 { @include typography($font-size-xl, $font-weight-bold); }
+h3 { @include typography($font-size-lg, $font-weight-medium); }
+h4 { @include typography($font-size-md, $font-weight-medium); }
+h5 { @include typography($font-size-sm, $font-weight-medium); }
+h6 { @include typography($font-size-xs, $font-weight-medium); }
+
+p {
+  @include typography($font-size-md);
+  margin-bottom: $spacing-sm;
+}
+
+.text-primary { color: $text-color-primary; }
+.text-secondary { color: $text-color-secondary; }
+.text-hint { color: $text-color-tertiary; }

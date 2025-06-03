@@ -1,0 +1,70 @@
+.group-selection-item {
+  position: relative;
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  border: 2px solid transparent;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  }
+
+  &.selected {
+    border: 2px solid #1976d2;
+    background: rgba(25, 118, 210, 0.02);
+  }
+
+  .group-preview {
+    display: flex;
+    align-items: flex-start;
+    padding: 20px;
+    gap: 16px;
+    
+    .group-color {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .group-info {
+      flex: 1;
+      min-width: 0;
+      
+      .group-name {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        color: #333;
+        line-height: 1.2;
+      }
+      
+      .group-desc {
+        font-size: 14px;
+        color: #666;
+        margin: 0 0 12px 0;
+        line-height: 1.4;
+      }
+      
+      .group-stats {
+        display: flex;
+        gap: 16px;
+        
+        .card-count,
+        .device-count {
+          font-size: 12px;
+          color: #888;
+          background: #f5f5f5;
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-weight: 500;
+        }
+      }
+    }
+  }
+} 

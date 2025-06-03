@@ -1,0 +1,130 @@
+<div class="home">
+  <!-- Hero Carousel Section -->
+  <section class="home__hero-carousel" 
+           (mouseenter)="onMouseEnter()" 
+           (mouseleave)="onMouseLeave()">
+    
+    <!-- Carousel Container -->
+    <div class="home__carousel-container">
+      
+      <!-- Carousel Slides -->
+      <div class="home__carousel-wrapper">
+        <div class="home__carousel-track" #carouselTrack>
+          
+          <!-- Individual Slides -->
+          <div *ngFor="let slide of heroSlides; let i = index" 
+               class="home__carousel-slide"
+               [class]="'home__carousel-slide--' + slide.theme">
+            
+            <div class="home__hero-container">
+              <!-- Left Content -->
+              <div class="home__hero-content">
+                <h1 class="home__hero-title">{{ slide.title }}</h1>
+                <h2 class="home__hero-subtitle">{{ slide.subtitle }}</h2>
+                <p class="home__hero-description">{{ slide.description }}</p>
+                
+                <div class="home__hero-actions">
+                  <button class="home__cta-primary" [routerLink]="slide.primaryButton?.link || '/'">
+                    {{ slide.primaryButton?.text || '了解更多' }}
+                  </button>
+                  <button class="home__cta-secondary" [routerLink]="slide.secondaryButton?.link || '/'">
+                    {{ slide.secondaryButton?.text || '查看示範' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- Right Visual -->
+              <div class="home__hero-visual">
+                <img [src]="slide.image" 
+                     [alt]="slide.title + ' 展示圖'" 
+                     class="home__hero-image">
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+
+      <!-- Navigation Arrows -->
+      <button class="home__carousel-nav home__carousel-nav--prev" 
+              (click)="previousSlide()"
+              aria-label="上一張">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+      </button>
+      
+      <button class="home__carousel-nav home__carousel-nav--next" 
+              (click)="nextSlide()"
+              aria-label="下一張">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+        </svg>
+      </button>
+
+      <!-- Carousel Indicators -->
+      <div class="home__carousel-indicators">
+        <button *ngFor="let slide of originalSlides; let i = index"
+                class="home__carousel-indicator"
+                [class.active]="isIndicatorActive(i)"
+                (click)="goToSlide(i)"
+                [attr.aria-label]="'前往第 ' + (i + 1) + ' 張'">
+        </button>
+      </div>
+      
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="home__features">
+    <div class="home__features-container">
+      <div class="home__features-grid">
+        
+        <!-- Card Design Feature -->
+        <sn-home-feature-card
+          icon="assets/icons/design.svg"
+          [iconClass]="'home__feature-icon--design'"
+          title="圖卡設計"
+          desc="輕鬆設計個人化桌牌<br>支援多種模板與自訂元素"
+          link="/cards"
+          linkText="開始設計"
+          [customClass]="'design-hover'">
+        </sn-home-feature-card>
+
+        <!-- Groups Feature -->
+        <sn-home-feature-card
+          icon="assets/icons/groups.svg"
+          [iconClass]="'home__feature-icon--groups'"
+          title="群組部署"
+          desc="管理桌牌群組與設備部署<br>藍牙連接與遠程更新"
+          link="/groups"
+          linkText="部署桌圖"
+          class="groups-hover">
+        </sn-home-feature-card>
+
+        <!-- Deploy Feature -->
+        <sn-home-feature-card
+          icon="assets/icons/deploy.svg"
+          [iconClass]="'home__feature-icon--deploy'"
+          title="桌圖部署"
+          desc="管理桌牌群組與設備部署<br>藍牙連接與遠程更新"
+          link="/deploy"
+          linkText="部署桌圖"
+          class="deploy-hover">
+        </sn-home-feature-card>
+
+        <!-- Admin Feature -->
+        <sn-home-feature-card
+          icon="assets/icons/admin.svg"
+          [iconClass]="'home__feature-icon--admin'"
+          title="後台管理"
+          desc="完善的系統管理功能<br>用戶權限與設備監控"
+          link="/admin"
+          linkText="系統管理"
+          class="admin-hover">
+        </sn-home-feature-card>
+
+      </div>
+    </div>
+  </section>
+</div>

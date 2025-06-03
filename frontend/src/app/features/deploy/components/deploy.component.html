@@ -1,0 +1,411 @@
+<div class="deploy">
+  <div class="deploy__header">
+    <h2 class="deploy__title">{{ text.title }}</h2>
+    <p class="deploy__subtitle" *ngIf="text.subtitle">{{ text.subtitle }}</p>
+  </div>
+
+  <div class="deploy__content">
+    <!-- 左側：整合的投圖選擇 -->
+    <div class="deploy__left">
+      <div class="deploy__section">
+        <sn-tab-container 
+          [tabs]="cardTabs" 
+          [activeTab]="activeTab" 
+          (tabChange)="onCardTabChange($event)">
+          
+          <!-- 頁籤右側按鈕 -->
+          <div slot="tab-actions">
+            <!-- 自選投圖頁籤按鈕 -->
+            <button 
+              *ngIf="selectedCards.length > 0 && activeTab === 'cards'"
+              class="deploy__edit-button"
+              (click)="openCardSelection()">
+              選取圖卡
+            </button>
+            <span class="deploy__card-count" *ngIf="activeTab === 'cards'">已選取 {{ selectedCards.length }} 張圖卡</span>
+            
+            <!-- 群組投圖頁籤按鈕 -->
+            <button 
+              *ngIf="activeTab === 'groups'"
+              class="deploy__edit-button"
+              (click)="openGroupSelection()">
+              選取群組
+            </button>
+            <span class="deploy__card-count" *ngIf="activeTab === 'groups'">已選擇 {{ selectedGroup?.name || '無' }} 群組</span>
+          </div>
+
+          <!-- 圖卡投圖內容 -->
+          <div *ngIf="activeTab === 'cards'">
+            <div class="deploy__cards" (click)="selectedCards.length === 0 ? openCardSelection() : null" [class.deploy__cards--clickable]="selectedCards.length === 0">
+              <div 
+                *ngFor="let card of selectedCards" 
+                class="deploy__card-item deploy__card-item--horizontal">
+                <div class="deploy__card-info">
+                  <h4 class="deploy__card-name">{{ card.name }}</h4>
+                  <p class="deploy__card-desc">{{ card.description }}</p>
+                </div>
+                <div class="deploy__card-thumbnail deploy__card-thumbnail--dual">
+                  <div class="deploy__card-side deploy__card-side--a">
+                    <img 
+                      *ngIf="card.thumbnailA || card.thumbnail" 
+                      [src]="card.thumbnailA || card.thumbnail" 
+                      [alt]="card.name + ' - A面'"
+                      class="deploy__card-image">
+                    <div 
+                      *ngIf="!card.thumbnailA && !card.thumbnail" 
+                      class="deploy__card-placeholder">
+                      <span>A</span>
+                    </div>
+                    <div class="deploy__card-label">A</div>
+                  </div>
+                  <div class="deploy__card-side deploy__card-side--b">
+                    <img 
+                      *ngIf="card.thumbnailB" 
+                      [src]="card.thumbnailB" 
+                      [alt]="card.name + ' - B面'"
+                      class="deploy__card-image">
+                    <div 
+                      *ngIf="!card.thumbnailB" 
+                      class="deploy__card-placeholder">
+                      <span>B</span>
+                    </div>
+                    <div class="deploy__card-label">B</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- 無卡片時的提示 -->
+              <div *ngIf="selectedCards.length === 0" class="deploy__empty-state deploy__empty-state--clickable">
+                <p>{{ text.sections.cards.empty.noCards }}</p>
+                <p>{{ text.sections.cards.empty.pleaseSelect }}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 群組投圖內容 -->
+          <div *ngIf="activeTab === 'groups'">
+            <div class="deploy__cards" (click)="openGroupSelection()" [class.deploy__cards--clickable]="true">
+              <!-- 空狀態提示 -->
+              <div class="deploy__empty-state deploy__empty-state--clickable">
+                <p>尚未選擇任何群組</p>
+                <p>請點擊「選取群組」按鈕來選擇要部署的群組</p>
+              </div>
+            </div>
+          </div>
+
+        </sn-tab-container>
+      </div>
+    </div>
+
+    <!-- 右側：設備管理 -->
+    <div class="deploy__right">
+      <div class="deploy__section">
+        <sn-tab-container 
+          [tabs]="deviceTabs" 
+          [activeTab]="activeDeviceTab" 
+          (tabChange)="onDeviceTabChange($event)">
+          
+          <!-- 頁籤右側按鈕 -->
+          <div slot="tab-actions">
+            <button class="deploy__edit-button" *ngIf="activeDeviceTab === 'add'" (click)="openBluetoothScan()">
+              新增設備
+            </button>
+            <span class="deploy__device-count" *ngIf="activeDeviceTab === 'add'">
+              已記錄 <b>{{ devices.length }}</b> 筆設備
+            </span>
+          </div>
+
+          <!-- 設備內容區塊：掃描桌牌 -->
+          <div *ngIf="activeDeviceTab === 'deploy'">
+            <div class="deploy__devices">
+              <!-- 無設備時的提示 -->
+              <div *ngIf="devices.length === 0" class="deploy__empty-state">
+                <p>{{ text.sections.devices.empty.noDevices }}</p>
+                <p>{{ text.sections.devices.empty.pleaseAdd }}</p>
+              </div>
+              
+              <div
+                *ngFor="let device of devices; let i = index"
+                class="deploy__device-item deploy__device-item--with-delete">
+                <div class="deploy__device-info">
+                  <span class="deploy__device-index-wrapper">
+                    <span class="deploy__device-index" (click)="editIndex = device.bluetoothAddress">
+                      <ng-container *ngIf="editIndex === device.bluetoothAddress; else showIndex">
+                        <input
+                          type="text"
+                          min="1"
+                          [value]="device.customIndex || i + 1"
+                          (blur)="onDeviceIndexInputBlur(device, $event)"
+                          (keydown.enter)="onDeviceIndexInputBlur(device, $event)"
+                          style="width: 32px; text-align: center; border: none; background: transparent; font-weight: bold; font-size: 18px; outline: none; padding: 0; margin: 0;"
+                          autofocus
+                        />
+                      </ng-container>
+                      <ng-template #showIndex>
+                        {{ device.customIndex || i + 1 }}
+                      </ng-template>
+                    </span>
+                    <span class="deploy__device-index-arrows">
+                      <button type="button" class="deploy__device-index-arrow" (click)="onIndexArrowClick(device, i, 1, $event)">&#9650;</button>
+                      <button type="button" class="deploy__device-index-arrow" (click)="onIndexArrowClick(device, i, -1, $event)">&#9660;</button>
+                    </span>
+                  </span>
+                  <h4 class="deploy__device-name">{{ device.name }}</h4>
+                  <p class="deploy__device-address">{{ device.bluetoothAddress }}</p>
+                  <div class="deploy__device-status">
+                    <span
+                      class="deploy__status-badge"
+                      [ngClass]="getDeviceStatusClass(device.status)">
+                      {{ getDeviceStatusText(device.status) }}
+                    </span>
+                    <span
+                      *ngIf="device.currentCardName"
+                      class="deploy__current-card">
+                      {{ text.sections.devices.status.current }} {{ device.currentCardName }}
+                    </span>
+                  </div>
+                </div>
+
+                <sn-delete-button
+                  size="small"
+                  tooltip="移除設備"
+                  (delete)="removeDevice(device)">
+                </sn-delete-button>
+
+                <div class="deploy__device-actions">
+                  <!-- 部署按鈕（單一，點擊彈窗） -->
+                  <button
+                    class="deploy__btn deploy__btn--small deploy__btn--deploy-select"
+                    (click)="openDeployCardModal(device)"
+                    [disabled]="device.status !== 'Connected'">
+                    {{ device.currentCardName || '尚未部署' }}
+                  </button>
+                  <!-- 投圖按鈕 -->
+                  <button
+                    class="deploy__btn deploy__btn--small deploy__btn--cast"
+                    [disabled]="!device.currentCardId || device.status !== 'Connected'"
+                    (click)="device.currentCardId ? castImageToDevice(device) : null">
+                    {{ device.currentCardId ? text.sections.devices.actions.cast : '未部署' }}
+                  </button>
+                </div>
+                <!-- 部署卡片選擇彈窗 -->
+                <div *ngIf="showDeployCardModalFor === device.id" class="deploy__modal-overlay" (click)="closeDeployCardModal()">
+                  <div class="deploy__modal" (click)="$event.stopPropagation()">
+                    <div class="deploy__modal-header">
+                      <h3 class="deploy__modal-title">選擇要部署的圖卡</h3>
+                      <button class="deploy__modal-close" (click)="closeDeployCardModal()">關閉</button>
+                    </div>
+                    <div class="deploy__modal-content">
+                      <div class="deploy__card-selection">
+                        <button *ngFor="let card of selectedCards" class="deploy__btn deploy__btn--small deploy__btn--deploy-select-modal" (click)="deployCard(device, card); closeDeployCardModal()">
+                          {{ card.name }}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 設備內容區塊：新增設備 -->
+          <div *ngIf="activeDeviceTab === 'add'">
+            <div class="deploy__devices">
+              <div *ngIf="devices.length === 0" class="deploy__empty-state">
+                <p>{{ text.sections.devices.empty.noDevices }}</p>
+                <p>{{ text.sections.devices.empty.pleaseAdd }}</p>
+              </div>
+              <div *ngFor="let device of devices; let i = index" class="deploy__device-item deploy__device-item--with-delete">
+                <div class="deploy__device-info">
+                  <span class="deploy__device-index-wrapper">
+                    <span class="deploy__device-index">{{ device.customIndex || i + 1 }}</span>
+                  </span>
+                  <h4 class="deploy__device-name">{{ device.name }}</h4>
+                  <p class="deploy__device-address">{{ device.bluetoothAddress }}</p>
+                  <div class="deploy__device-status">
+                    <span class="deploy__status-badge" [ngClass]="getDeviceStatusClass(device.status)">
+                      {{ getDeviceStatusText(device.status) }}
+                    </span>
+                    <span *ngIf="device.currentCardName" class="deploy__current-card">
+                      {{ text.sections.devices.status.current }} {{ device.currentCardName }}
+                    </span>
+                  </div>
+                </div>
+                <sn-delete-button
+                  size="small"
+                  tooltip="移除設備"
+                  (delete)="removeDevice(device)">
+                </sn-delete-button>
+              </div>
+            </div>
+          </div>
+
+        </sn-tab-container>
+      </div>
+    </div>
+  </div>
+
+  <!-- 桌圖選擇彈窗 - 使用樣板modal共通組件樣式 -->
+  <div 
+    *ngIf="showCardSelectionModal" 
+    class="modal-overlay"
+    (click)="closeCardSelection()">
+    <div 
+      class="modal-container"
+      (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2 class="modal-title">{{ text.sections.modal.card.title }}</h2>
+        <button 
+          class="modal-close-btn"
+          (click)="closeCardSelection()">
+          <span class="close-icon">×</span>
+        </button>
+      </div>
+      
+      <div class="modal-content">
+        <div class="card-selection-grid">
+          <div 
+            *ngFor="let card of availableCards" 
+            class="card-selection-item"
+            [class.selected]="tempSelectedCardIds.includes(card.id)">
+            <div class="card-selection-checkbox">
+              <input 
+                type="checkbox" 
+                [id]="'card-' + card.id"
+                [checked]="tempSelectedCardIds.includes(card.id)"
+                (change)="onCardToggle(card)">
+            </div>
+            <label [for]="'card-' + card.id" class="card-selection-label">
+              <div class="card-preview">
+                <div class="side-toggle-buttons">
+                  <button 
+                    class="side-toggle" 
+                    [class.active]="getCardCurrentSide(card) !== 'B'"
+                    (click)="toggleCardSide(card, 'A', $event)">
+                    A
+                  </button>
+                  <button 
+                    class="side-toggle" 
+                    [class.active]="getCardCurrentSide(card) === 'B'"
+                    (click)="toggleCardSide(card, 'B', $event)">
+                    B
+                  </button>
+                </div>
+                <img 
+                  *ngIf="getCurrentSideImage(card)" 
+                  [src]="getCurrentSideImage(card)" 
+                  [alt]="card.name + ' - ' + getCardCurrentSide(card) + '面'"
+                  class="card-image">
+                <div 
+                  *ngIf="!getCurrentSideImage(card)" 
+                  class="card-placeholder">
+                  <span>{{ card.name.charAt(0) }}</span>
+                </div>
+              </div>
+              <div class="card-info">
+                <div class="card-info-content">
+                  <div class="card-text-info">
+                    <h4 class="card-name">{{ card.name }}</h4>
+                    <p class="card-desc">{{ card.description || '無描述' }}</p>
+                  </div>
+                  <div class="card-ab-preview">
+                    <div class="side-preview" [title]="getOtherSideTitle(card)">
+                      <img [src]="getOtherSidePreview(card)" [alt]="getOtherSideTitle(card)">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button 
+          class="modal-btn modal-btn--secondary"
+          (click)="closeCardSelection()">
+          取消
+        </button>
+        <button 
+          class="modal-btn modal-btn--primary"
+          (click)="confirmCardSelection()">
+          確認選擇
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 藍牙設備選擇彈窗 -->
+  <div 
+    *ngIf="showBluetoothModal" 
+    class="modal-overlay"
+    (click)="closeBluetoothModal()">
+    <div 
+      class="modal-container"
+      (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">{{ text.sections.modal.bluetooth.title }}</h3>
+        <button 
+          class="modal-close-btn"
+          (click)="closeBluetoothModal()">
+          <span class="close-icon">×</span>
+        </button>
+      </div>
+      
+      <div class="modal-content">
+        <div *ngIf="isScanning" class="deploy__scanning">
+          <div class="deploy__spinner"></div>
+          <p>{{ text.sections.modal.bluetooth.scanStatus }}</p>
+        </div>
+        
+        <div *ngIf="!isScanning && bluetoothDevices.length === 0" class="deploy__no-devices">
+          <p>{{ text.sections.modal.bluetooth.noDevices }}</p>
+          <button 
+            class="modal-btn modal-btn--primary"
+            (click)="scanForDevices()">
+            {{ text.sections.modal.bluetooth.scanBtn }}
+          </button>
+        </div>
+        
+        <div *ngIf="!isScanning && bluetoothDevices.length > 0" class="deploy__bluetooth-devices">
+          <div 
+            *ngFor="let device of bluetoothDevices" 
+            class="deploy__bluetooth-device">
+            <div class="deploy__bluetooth-info">
+              <h4 class="deploy__bluetooth-name">{{ device.name }}</h4>
+              <p class="deploy__bluetooth-address">{{ device.bluetoothAddress }}</p>
+              <div class="deploy__bluetooth-details">
+                <span class="deploy__signal-strength">
+                  信號強度: {{ device.signalStrength }}dBm
+                </span>
+                <span class="deploy__device-type">{{ device.deviceType }}</span>
+              </div>
+            </div>
+            <div class="deploy__device-selection">
+              <input 
+                type="checkbox" 
+                [id]="'device-' + device.bluetoothAddress"
+                [checked]="selectedDevices.has(device.bluetoothAddress)"
+                (change)="toggleDeviceSelection(device, $event)">
+              <label [for]="'device-' + device.bluetoothAddress">選擇</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-footer">
+        <button 
+          class="modal-btn modal-btn--secondary"
+          (click)="closeBluetoothModal()">
+          取消
+        </button>
+        <button 
+          class="modal-btn modal-btn--primary"
+          [disabled]="selectedDevices.size === 0"
+          (click)="confirmDeviceSelection()">
+          {{ text.sections.modal.bluetooth.confirmBtn }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div> 

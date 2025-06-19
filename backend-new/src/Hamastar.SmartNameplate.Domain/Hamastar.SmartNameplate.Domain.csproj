@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Hamastar.SmartNameplate</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hamastar.SmartNameplate.Domain.Shared\Hamastar.SmartNameplate.Domain.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Ddd.Domain" Version="8.0.0" />
+    <PackageReference Include="Volo.Abp.Localization" Version="8.0.0" />
+  </ItemGroup>
+
+</Project> 

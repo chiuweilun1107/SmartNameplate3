@@ -1,6 +1,6 @@
 import { Component, Input, Output, EventEmitter, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 
 @Component({
   selector: 'sn-header',
@@ -20,6 +20,8 @@ export class HeaderComponent {
   @Output() logoutClick = new EventEmitter<void>();
   @Output() profileClick = new EventEmitter<void>();
 
+  constructor(private router: Router) {}
+
   onLoginClick(): void {
     this.loginClick.emit();
   }
@@ -30,5 +32,9 @@ export class HeaderComponent {
 
   onProfileClick(): void {
     this.profileClick.emit();
+  }
+
+  goHome(): void {
+    this.router.navigate(['/']);
   }
 } 

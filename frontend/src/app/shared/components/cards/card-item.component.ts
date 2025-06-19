@@ -1,6 +1,8 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { DeleteButtonComponent } from '../delete-button/delete-button.component';
 
 export interface CardItem {
@@ -9,14 +11,13 @@ export interface CardItem {
   description?: string;
   thumbnailA?: string;
   thumbnailB?: string;
-  category: string; // 修改為必需屬性，與 TemplateListItem 一致
+  category: string;
   status?: number;
-  contentA?: any;
-  contentB?: any;
+  contentA?: string | object;
+  contentB?: string | object;
   _currentSide?: 'A' | 'B';
-  // 為了與 TemplateListItem 相容，改為必需屬性
-  isPublic: boolean;
-  createdAt: string;
+  isPublic?: boolean;
+  createdAt?: string;
 }
 
 @Component({
@@ -25,10 +26,15 @@ export interface CardItem {
   imports: [
     CommonModule,
     MatIconModule,
+    MatButtonModule,
+    MatTooltipModule,
     DeleteButtonComponent
   ],
   template: `
-    <div class="card-item" [class.selected]="isSelected" (click)="onCardClick()">
+    <div class="card-item" [class.selected]="isSelected" (click)="onCardClick()"
+      (keydown.enter)="onCardClick()"
+      (keydown.space)="onCardClick()"
+      tabindex="0" role="button">
       <sn-delete-button
         *ngIf="showDeleteButton"
         size="small"
@@ -118,7 +124,7 @@ export class CardItemComponent {
     }
     
     // 否則生成基於內容的預覽圖
-    return this.generateSidePreview(currentSide);
+    return this.generateSidePreview(this.card, currentSide);
   }
 
   getOtherSidePreview(): string {
@@ -133,7 +139,7 @@ export class CardItemComponent {
     }
     
     // 否則生成基於內容的預覽圖
-    return this.generateSidePreview(otherSide);
+    return this.generateSidePreview(this.card, otherSide);
   }
 
   getOtherSideTitle(): string {
@@ -141,9 +147,17 @@ export class CardItemComponent {
     return `${otherSide}面預覽`;
   }
 
-  private generateSidePreview(side: 'A' | 'B'): string {
+  private generateSidePreview(item: CardItem, side: 'A' | 'B'): string {
+    // 優先使用對應面的縮圖
+    if (side === 'A' && item.thumbnailA) {
+      return item.thumbnailA;
+    }
+    if (side === 'B' && item.thumbnailB) {
+      return item.thumbnailB;
+    }
+    
     // 基於卡片內容生成預覽圖
-    const content = side === 'A' ? this.card.contentA : this.card.contentB;
+    const content = side === 'A' ? item.contentA : item.contentB;
     if (!content) {
       return 'assets/images/default-card.png';
     }
@@ -152,11 +166,14 @@ export class CardItemComponent {
     return this.generatePreviewFromContent(content);
   }
 
-  private generatePreviewFromContent(content: any): string {
+  private generatePreviewFromContent(content: string | object): string {
+    // 這裡可以根據內容類型生成不同的預覽圖
+    // 暫時返回默認圖片，後續可以實作內容解析
     try {
       const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
-      if (parsedContent && parsedContent.background) {
-        return this.generateColorPreview(parsedContent.background);
+      if (parsedContent && typeof parsedContent === 'object' && 'background' in parsedContent) {
+        // 使用正確的background字段
+        return this.generateColorPreview((parsedContent as { background: string }).background);
       }
     } catch (e) {
       console.log('解析內容失敗:', e);

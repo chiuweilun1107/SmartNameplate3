@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 
 namespace SmartNameplate.Api.Entities;
 
@@ -28,9 +27,9 @@ public class Card
     
     public string? ThumbnailB { get; set; }
 
-    public JsonElement? ContentA { get; set; }
+    public string? ContentA { get; set; }
 
-    public JsonElement? ContentB { get; set; }
+    public string? ContentB { get; set; }
 
     /// <summary>
     /// 標記 A、B 面是否相同 (true = side 0, false = side 1/2)

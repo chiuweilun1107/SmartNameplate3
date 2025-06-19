@@ -1,6 +1,15 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+interface Card {
+  id: string | number;
+  name: string;
+  description?: string;
+  thumbnail?: string;
+  thumbnailA?: string;
+  thumbnailB?: string;
+}
+
 @Component({
   selector: 'sn-card-selection-item',
   standalone: true,
@@ -9,7 +18,10 @@ import { CommonModule } from '@angular/common';
     <div 
       class="card-selection-item"
       [class.selected]="isSelected"
-      (click)="onItemClick()">
+      (click)="onItemClick()"
+      (keydown.enter)="onItemClick()"
+      (keydown.space)="onItemClick()"
+      tabindex="0" role="button">
       <div class="card-selection-checkbox">
         <input 
           type="checkbox" 
@@ -64,7 +76,7 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./card-selection-item.component.scss']
 })
 export class CardSelectionItemComponent {
-  @Input() card: any = {};
+  @Input() card: Card = {} as Card;
   @Input() isSelected = false;
 
   @Output() selectionChange = new EventEmitter<boolean>();
@@ -76,8 +88,9 @@ export class CardSelectionItemComponent {
     this.itemClick.emit();
   }
 
-  onSelectionChange(event: any): void {
-    this.selectionChange.emit(event.target.checked);
+  onSelectionChange(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    this.selectionChange.emit(target.checked);
   }
 
   toggleSide(side: 'A' | 'B', event: Event): void {

@@ -19,11 +19,23 @@ export interface TemplateCategorySelection {
     FormsModule
   ],
   template: `
-    <div class="modal-overlay" *ngIf="isVisible" (click)="onOverlayClick($event)">
-      <div class="modal-container">
+    <div class="modal-overlay" 
+         *ngIf="isVisible" 
+         (click)="onOverlayClick($event)"
+         (keydown.enter)="onOverlayClick($event)"
+         (keydown.space)="onOverlayClick($event)"
+         tabindex="0" 
+         role="button">
+      <div class="modal-container" 
+           (click)="$event.stopPropagation()"
+           (keydown.enter)="$event.stopPropagation()"
+           (keydown.space)="$event.stopPropagation()"
+           tabindex="0" 
+           role="dialog"
+           aria-label="樣板分類對話框">
         <div class="modal-header">
           <h2 class="modal-title">儲存樣板</h2>
-          <button mat-icon-button class="modal-close-btn" (click)="close.emit()">
+          <button mat-icon-button class="modal-close-btn" (click)="modalClose.emit()" (keydown.enter)="modalClose.emit()" (keydown.space)="modalClose.emit()" tabindex="0" role="button">
             <mat-icon>close</mat-icon>
           </button>
         </div>
@@ -40,34 +52,27 @@ export interface TemplateCategorySelection {
           </div>
 
           <div class="form-group">
-            <label>樣板類型</label>
-            <div class="category-grid">
-              <div
-                *ngFor="let category of categories"
-                class="category-item"
-                [class.selected]="selectedCategory === category.value"
-                (click)="selectCategory(category.value)">
-                <mat-icon>{{ category.icon }}</mat-icon>
-                <span>{{ category.label }}</span>
-              </div>
-              <div
-                class="category-item"
-                [class.selected]="selectedCategory === ''"
-                (click)="selectCategory('')">
-                <mat-icon>help_outline</mat-icon>
-                <span>其他</span>
-              </div>
-            </div>
+            <label for="category-select" class="form-label">選擇分類</label>
+                         <select 
+               id="category-select"
+               [(ngModel)]="selectedCategory"
+               class="form-select">
+               <option value="">請選擇分類</option>
+               <option *ngFor="let category of categories" [value]="category.value">{{ category.label }}</option>
+             </select>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button mat-button (click)="close.emit()">取消</button>
+          <button mat-button (click)="modalClose.emit()" (keydown.enter)="modalClose.emit()" (keydown.space)="modalClose.emit()" tabindex="0" role="button">取消</button>
           <button
             mat-raised-button
             color="primary"
             [disabled]="!templateName.trim()"
-            (click)="saveTemplate()">
+            (click)="saveTemplate()"
+            (keydown.enter)="saveTemplate()"
+            (keydown.space)="saveTemplate()"
+            tabindex="0" role="button">
             儲存樣板
           </button>
         </div>
@@ -79,7 +84,7 @@ export interface TemplateCategorySelection {
 export class TemplateCategoryModalComponent implements OnChanges {
   @Input() isVisible = false;
   @Input() currentCardName = '';
-  @Output() close = new EventEmitter<void>();
+  @Output() modalClose = new EventEmitter<void>();
   @Output() templateSaved = new EventEmitter<TemplateCategorySelection>();
 
   templateName = '';
@@ -109,7 +114,7 @@ export class TemplateCategoryModalComponent implements OnChanges {
         category: this.selectedCategory,
         name: this.templateName.trim()
       });
-      this.close.emit();
+      this.modalClose.emit();
       this.resetForm();
     }
   }
@@ -121,7 +126,7 @@ export class TemplateCategoryModalComponent implements OnChanges {
 
   onOverlayClick(event: Event): void {
     if (event.target === event.currentTarget) {
-      this.close.emit();
+      this.modalClose.emit();
     }
   }
 }

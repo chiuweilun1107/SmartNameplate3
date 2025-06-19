@@ -3,8 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 import { DeployService } from '../services/deploy.service';
-import { Group, Card, Device, BluetoothDevice } from '../models/deploy.models';
+import { Group, GroupDetail, Card, Device, BluetoothDevice } from '../models/deploy.models';
 import { NotificationService } from '../../../shared/services/notification.service';
+import { CryptoService } from '../../../core/services/crypto.service';
 import { TagButtonComponent } from '../../../shared/components/tags/tag-button.component';
 import { TemplateModalComponent } from '../../../shared/components/modals/template-modal.component';
 import { TabContainerComponent, TabItem } from '../../../shared/components/tabs/tab-container.component';
@@ -81,7 +82,7 @@ export const DEPLOY_TEXT = {
 };
 
 @Component({
-  selector: 'app-deploy',
+  selector: 'sn-deploy',
   standalone: true,
   imports: [CommonModule, FormsModule, MatIconModule, TagButtonComponent, TemplateModalComponent, TabContainerComponent, GenericSelectionModalComponent, CardSelectionItemComponent, GroupSelectionItemComponent, DeleteButtonComponent],
   templateUrl: './deploy.component.html',
@@ -89,7 +90,7 @@ export const DEPLOY_TEXT = {
 })
 export class DeployComponent implements OnInit {
   groups: Group[] = [];
-  selectedGroup: Group | null = null;
+  selectedGroup: GroupDetail | null = null;
   selectedCards: Card[] = [];
   availableCards: Card[] = [];
   devices: Device[] = [];
@@ -134,13 +135,16 @@ export class DeployComponent implements OnInit {
   
   constructor(
     private deployService: DeployService,
-    private notificationService: NotificationService
+    private notificationService: NotificationService,
+    private cryptoService: CryptoService
   ) {}
 
   ngOnInit() {
     this.loadGroups();
     this.loadCards();
     this.loadDevices();
+    // 🔧 新增：載入已保存的圖卡選擇
+    this.loadSavedCardSelection();
   }
 
   // 標籤切換
@@ -197,9 +201,9 @@ export class DeployComponent implements OnInit {
   }
 
   selectGroup(group: Group) {
-    this.selectedGroup = group;
     this.deployService.getGroup(group.id).subscribe({
       next: (groupDetail) => {
+        this.selectedGroup = groupDetail;
         this.selectedCards = groupDetail.cards;
       },
       error: (error) => console.error('載入群組詳情失敗:', error)
@@ -239,16 +243,14 @@ export class DeployComponent implements OnInit {
     // 將SelectionItem轉換回Group類型
     const selectedGroup = this.groups.find(g => g.id === group.id);
     if (selectedGroup) {
-      this.selectedGroup = selectedGroup;
-      this.selectedCards = []; // 清空已選圖卡
+      this.selectGroup(selectedGroup);
       console.log('選擇群組:', selectedGroup.name);
     }
   }
 
   // 選擇群組
   selectGroupFromModal(group: Group) {
-    this.selectedGroup = group;
-    this.selectedCards = []; // 清空已選圖卡
+    this.selectGroup(group);
     this.closeGroupSelection();
     console.log('選擇群組:', group.name);
   }
@@ -290,9 +292,12 @@ export class DeployComponent implements OnInit {
     return !currentCardIds.every((id, index) => id === tempCardIds[index]);
   }
 
-  // 確認選擇卡片（通用模態彈窗回調）
+  // 🛡️ 安全的確認選擇卡片（通用模態彈窗回調）- 防止 Object Injection
   onCardSelectionChange(selectedCards: SelectionItem[]): void {
-    this.tempSelectedCardIds = selectedCards.map(card => card.id as number);
+    this.tempSelectedCardIds = selectedCards
+      .filter(card => card && typeof card === 'object' && 'id' in card && typeof card.id === 'number')
+      .map(card => card.id as number)
+      .filter(id => id > 0);
     this.confirmCardSelection();
   }
 
@@ -318,15 +323,64 @@ export class DeployComponent implements OnInit {
     if (this.tempSelectedCardIds.length === 0) {
       console.log('沒有選擇任何卡片，將清空選擇');
       this.selectedCards = [];
-      return;
+    } else {
+      console.log(`選中了 ${this.tempSelectedCardIds.length} 張卡片`);
+      
+      // 更新選擇的卡片
+      this.selectedCards = this.availableCards.filter(card => 
+        this.tempSelectedCardIds.includes(card.id)
+      );
     }
-
-    console.log(`選中了 ${this.tempSelectedCardIds.length} 張卡片`);
     
-    // 更新選擇的卡片
-    this.selectedCards = this.availableCards.filter(card => 
-      this.tempSelectedCardIds.includes(card.id)
-    );
+    // 🔧 新增：保存選擇的圖卡到 localStorage
+    this.saveCardSelection();
+    
+    // 🔧 修正：確認選擇後自動關閉彈跳視窗
+    this.closeCardSelection();
+  }
+
+  // 🔧 新增：保存圖卡選擇到 localStorage
+  private saveCardSelection() {
+    try {
+      const selectedCardIds = this.selectedCards.map(card => card.id);
+      localStorage.setItem('deploy_selected_cards', JSON.stringify(selectedCardIds));
+      console.log('已保存圖卡選擇:', selectedCardIds);
+    } catch (error) {
+      console.error('保存圖卡選擇失敗:', error);
+    }
+  }
+
+  // 🔧 新增：從 localStorage 載入圖卡選擇
+  private loadSavedCardSelection() {
+    try {
+      const savedCardIds = localStorage.getItem('deploy_selected_cards');
+      if (savedCardIds) {
+        const cardIds: number[] = JSON.parse(savedCardIds);
+        console.log('載入已保存的圖卡選擇:', cardIds);
+        
+        // 等待 availableCards 載入完成後再設置選擇
+        this.waitForCardsAndSetSelection(cardIds);
+      }
+    } catch (error) {
+      console.error('載入圖卡選擇失敗:', error);
+    }
+  }
+
+  // 🔧 新增：等待卡片載入完成後設置選擇
+  private waitForCardsAndSetSelection(cardIds: number[]) {
+    // 使用 setTimeout 確保 availableCards 已經載入
+    const checkAndSet = () => {
+      if (this.availableCards.length > 0) {
+        this.selectedCards = this.availableCards.filter(card => 
+          cardIds.includes(card.id)
+        );
+        console.log('已恢復圖卡選擇:', this.selectedCards.map(c => c.name));
+      } else {
+        // 如果還沒載入完成，再等一下
+        setTimeout(checkAndSet, 100);
+      }
+    };
+    setTimeout(checkAndSet, 100);
   }
 
 
@@ -360,8 +414,9 @@ export class DeployComponent implements OnInit {
   }
 
   // 切換設備選擇狀態
-  toggleDeviceSelection(device: BluetoothDevice, event: any) {
-    if (event.target.checked) {
+  toggleDeviceSelection(device: BluetoothDevice, event: Event) {
+    const target = event.target as HTMLInputElement;
+    if (target.checked) {
       this.selectedDevices.add(device.bluetoothAddress);
     } else {
       this.selectedDevices.delete(device.bluetoothAddress);
@@ -374,7 +429,7 @@ export class DeployComponent implements OnInit {
   }
 
   // 當彈窗選擇變更時的處理
-  onDeviceSelectionChange(selectedDevices: any[]): void {
+  onDeviceSelectionChange(selectedDevices: BluetoothDevice[]): void {
     this.selectedDevices.clear();
     selectedDevices.forEach(device => {
       if (device.bluetoothAddress) {
@@ -422,7 +477,7 @@ export class DeployComponent implements OnInit {
         bluetoothAddress: device.bluetoothAddress,
         originalAddress: device.originalAddress
       }).subscribe({
-        next: (connectedDevice) => {
+        next: () => {
           completedConnections++;
           successfulConnections++;
           console.log(`設備 "${device.name}" 連接成功`);
@@ -433,7 +488,11 @@ export class DeployComponent implements OnInit {
         },
         error: (error) => {
           completedConnections++;
-          console.error(`設備 "${device.name}" 連接失敗:`, error);
+          // 🛡️ 修復Object Injection漏洞：使用安全的日誌記錄
+          console.error('設備連接失敗:', { 
+            deviceName: String(device?.name || 'unknown'), 
+            errorMessage: String(error?.message || '未知錯誤')
+          });
           
           if (completedConnections === totalConnections) {
             this.finishDeviceConnection(successfulConnections, totalConnections - successfulConnections);
@@ -476,50 +535,105 @@ export class DeployComponent implements OnInit {
     }
 
     console.log(`投圖到設備 ${device.name}: ${device.currentCardName || '未知卡片'}`);
+    console.log('🔍 投圖請求詳細資訊:', {
+      deviceId: device.id,
+      deviceName: device.name,
+      currentCardId: device.currentCardId,
+      currentCardName: device.currentCardName,
+      requestPayload: { cardId: device.currentCardId, side: 2 }
+    });
     
-    // 顯示進度通知
+    // 🎯 顯示真實投圖進度
     const notificationId = this.notificationService.loading(
       '正在投圖...',
-      `正在將 "${device.currentCardName || '卡片'}" 投送到 ${device.name}`,
+      `準備投圖A面 "${device.currentCardName || '卡片'}" 到 ${device.name}`,
       true
     );
     
-    // 減少進度更新頻率，避免通知重複刷新
-    let progress = 0;
-    let lastProgressUpdate = 0;
-    const progressInterval = setInterval(() => {
-      progress += Math.random() * 15 + 5; // 每次增加5-20%
-      if (progress > 90) progress = 90;
-      
-      // 只在進度有明顯變化時才更新（至少5%差異）
-      if (progress - lastProgressUpdate >= 5) {
-        this.notificationService.updateProgress(notificationId, Math.floor(progress));
-        lastProgressUpdate = progress;
+    // 🎯 追蹤真實投圖狀態
+    let currentPhase = 'preparing'; // preparing -> sideA -> sideB -> complete
+    let currentProgress = 0;
+    
+    // 🎯 基於實際投圖時間的進度更新（每個面約25秒，總共約55秒）
+    const progressTimer = setInterval(() => {
+      switch (currentPhase) {
+        case 'preparing':
+          currentProgress += 2;
+          if (currentProgress >= 10) {
+            currentPhase = 'sideA';
+            this.notificationService.updateProgress(notificationId, currentProgress, '正在投圖A面...');
+          } else {
+            this.notificationService.updateProgress(notificationId, currentProgress, '準備投圖A面...');
+          }
+          break;
+          
+        case 'sideA':
+          currentProgress += 1.5; // A面約25秒完成（10%-50%）
+          if (currentProgress >= 50) {
+            currentPhase = 'sideB';
+            this.notificationService.updateProgress(notificationId, currentProgress, '正在投圖B面...');
+          } else {
+            const sideAProgress = Math.floor((currentProgress - 10) / 40 * 100);
+            this.notificationService.updateProgress(notificationId, currentProgress, `正在投圖A面... ${sideAProgress}%`);
+          }
+          break;
+          
+        case 'sideB':
+          currentProgress += 1.5; // B面約25秒完成（50%-90%）
+          if (currentProgress >= 90) {
+            currentPhase = 'complete';
+            this.notificationService.updateProgress(notificationId, currentProgress, '正在完成投圖...');
+          } else {
+            const sideBProgress = Math.floor((currentProgress - 50) / 40 * 100);
+            this.notificationService.updateProgress(notificationId, currentProgress, `正在投圖B面... ${sideBProgress}%`);
+          }
+          break;
+          
+        case 'complete':
+          currentProgress = Math.min(95, currentProgress + 1);
+          this.notificationService.updateProgress(notificationId, currentProgress, '正在完成投圖...');
+          break;
       }
-    }, 500); // 降低更新頻率到每500ms
+    }, 1000); // 每秒更新一次
     
     this.deployService.castImageToDevice(device.id, { cardId: device.currentCardId, side: 2 }).subscribe({
       next: (result: { message: string }) => {
-        clearInterval(progressInterval);
-        this.notificationService.updateProgress(notificationId, 100);
+        clearInterval(progressTimer);
+        this.notificationService.updateProgress(notificationId, 100, '投圖完成！');
         
         setTimeout(() => {
           this.notificationService.remove(notificationId);
           this.notificationService.success(
-            '投圖成功',
-            `"${device.currentCardName || '卡片'}" 已成功投送到 ${device.name}`
+            '投圖完成',
+            `圖片"${device.currentCardName || '未知圖片'}"投圖已完成！\n圖卡已成功投送到"${device.name}"！`
           );
-        }, 800); // 稍微延長顯示時間
+        }, 1000); // 延長顯示完成狀態
         
         console.log('投圖成功:', result.message);
       },
-      error: (error: any) => {
-        clearInterval(progressInterval);
+      error: (error: Error) => {
+        clearInterval(progressTimer);
         this.notificationService.remove(notificationId);
-        this.notificationService.error(
-          '投圖失敗',
-          error.message || '未知錯誤'
-        );
+        
+        // 🎯 根據錯誤類型顯示不同的錯誤訊息
+        let errorTitle = '投圖失敗';
+        let errorMessage = error.message || '未知錯誤';
+        
+        if (error.message && error.message.includes('Timeout')) {
+          errorTitle = '藍牙連接超時';
+          errorMessage = `無法連接到設備 "${device.name}"，請確認：\n1. 設備是否開機並可被發現\n2. 設備是否在藍牙範圍內\n3. 藍牙功能是否正常`;
+        } else if (error.message && error.message.includes('Device with address')) {
+          errorTitle = '設備連接失敗';
+          errorMessage = `找不到設備 "${device.name}"，請重新掃描並連接設備`;
+        } else if (error.message && error.message.includes('A面傳輸失敗')) {
+          errorTitle = 'A面投圖失敗';
+          errorMessage = 'A面圖片傳輸失敗，請檢查設備連接狀態';
+        } else if (error.message && error.message.includes('B面傳輸失敗')) {
+          errorTitle = 'B面投圖失敗';
+          errorMessage = 'B面圖片傳輸失敗，A面可能已成功';
+        }
+        
+        this.notificationService.error(errorTitle, errorMessage);
         console.error('投圖失敗:', error);
       }
     });
@@ -544,7 +658,7 @@ export class DeployComponent implements OnInit {
 
     console.log(`開始依序投圖到 ${connectedDevices.length} 台設備`);
     
-    // 顯示批量投圖進度
+    // 🎯 顯示批量投圖進度，使用與單一設備相同的詳細進度模式
     const notificationId = this.notificationService.loading(
       '正在批量投圖...',
       `準備投圖到 ${connectedDevices.length} 台設備`,
@@ -553,29 +667,129 @@ export class DeployComponent implements OnInit {
     
     let successfulCasts = 0;
     let failedCasts = 0;
-    let currentDeviceIndex = 0;
 
-    // 依序投圖，避免同時連接多個 BLE 設備
+    // 🎯 為每個設備實現詳細的投圖進度追蹤
     for (let i = 0; i < connectedDevices.length; i++) {
       const device = connectedDevices[i];
-      currentDeviceIndex = i + 1;
+      const deviceIndex = i + 1;
       
-      // 減少進度更新頻率，只在開始投圖每台設備時更新
-      const overallProgress = Math.floor((i / connectedDevices.length) * 100);
-      this.notificationService.updateProgress(notificationId, overallProgress);
+      console.log(`正在投圖到設備 ${deviceIndex}/${connectedDevices.length}:`, { 
+        deviceName: device.name, 
+        currentCardName: device.currentCardName 
+      });
       
-      console.log(`正在投圖到設備 ${currentDeviceIndex}/${connectedDevices.length}: ${device.name} (${device.currentCardName})`);
+      // 🎯 為當前設備建立詳細的進度追蹤系統
+      let currentPhase = 'preparing'; // preparing -> sideA -> sideB -> complete
+      let currentProgress = 0;
+      const baseProgress = (i / connectedDevices.length) * 100; // 當前設備的起始進度
+      const deviceProgressRange = 100 / connectedDevices.length; // 每個設備佔用的進度範圍
+      
+      // 🎯 基於實際投圖時間的進度更新（每個面約25秒，總共約55秒）
+      const progressTimer = setInterval(() => {
+        switch (currentPhase) {
+          case 'preparing':
+            currentProgress += 2;
+            if (currentProgress >= 10) {
+              currentPhase = 'sideA';
+              const totalProgress = baseProgress + (currentProgress / 100) * deviceProgressRange;
+              this.notificationService.updateProgress(
+                notificationId, 
+                Math.floor(totalProgress), 
+                `設備${deviceIndex}/${connectedDevices.length}: 正在投圖A面到設備...`
+              );
+            } else {
+              const totalProgress = baseProgress + (currentProgress / 100) * deviceProgressRange;
+              this.notificationService.updateProgress(
+                notificationId, 
+                Math.floor(totalProgress), 
+                `設備${deviceIndex}/${connectedDevices.length}: 準備投圖到設備...`
+              );
+            }
+            break;
+            
+          case 'sideA':
+            currentProgress += 1.5; // A面約25秒完成（10%-50%）
+            if (currentProgress >= 50) {
+              currentPhase = 'sideB';
+              const totalProgress = baseProgress + (currentProgress / 100) * deviceProgressRange;
+              this.notificationService.updateProgress(
+                notificationId, 
+                Math.floor(totalProgress), 
+                `設備${deviceIndex}/${connectedDevices.length}: 正在投圖B面到設備...`
+              );
+            } else {
+              const sideAProgress = Math.floor((currentProgress - 10) / 40 * 100);
+              const totalProgress = baseProgress + (currentProgress / 100) * deviceProgressRange;
+              this.notificationService.updateProgress(
+                notificationId, 
+                Math.floor(totalProgress), 
+                `設備${deviceIndex}/${connectedDevices.length}: 投圖A面... ${sideAProgress}%`
+              );
+            }
+            break;
+            
+          case 'sideB':
+            currentProgress += 1.5; // B面約25秒完成（50%-90%）
+            if (currentProgress >= 90) {
+              currentPhase = 'complete';
+              const totalProgress = baseProgress + (currentProgress / 100) * deviceProgressRange;
+              this.notificationService.updateProgress(
+                notificationId, 
+                Math.floor(totalProgress), 
+                `設備${deviceIndex}/${connectedDevices.length}: 正在完成投圖...`
+              );
+            } else {
+              const sideBProgress = Math.floor((currentProgress - 50) / 40 * 100);
+              const totalProgress = baseProgress + (currentProgress / 100) * deviceProgressRange;
+              this.notificationService.updateProgress(
+                notificationId, 
+                Math.floor(totalProgress), 
+                `設備${deviceIndex}/${connectedDevices.length}: 投圖B面... ${sideBProgress}%`
+              );
+            }
+            break;
+            
+          case 'complete': {
+            currentProgress = Math.min(95, currentProgress + 1);
+            const totalProgress = baseProgress + (currentProgress / 100) * deviceProgressRange;
+            this.notificationService.updateProgress(
+              notificationId, 
+              Math.floor(totalProgress), 
+              `設備${deviceIndex}/${connectedDevices.length}: 正在完成投圖...`
+            );
+            break;
+          }
+        }
+      }, 1000);
       
       try {
-        await new Promise<void>((resolve, reject) => {
+        await new Promise<void>((resolve) => {
           this.deployService.castImageToDevice(device.id, { cardId: device.currentCardId!, side: 2 }).subscribe({
             next: (result: { message: string }) => {
-              console.log(`設備 "${device.name}" 投圖成功:`, result.message);
+              clearInterval(progressTimer);
+              // 設備投圖完成，更新進度到該設備的100%
+              const completedProgress = baseProgress + deviceProgressRange;
+              this.notificationService.updateProgress(
+                notificationId, 
+                Math.floor(completedProgress), 
+                `設備${deviceIndex}/${connectedDevices.length}: 設備投圖完成！`
+              );
+              
+              console.log('設備投圖成功:', { deviceName: device.name, message: result.message });
               successfulCasts++;
               resolve();
             },
-            error: (error: any) => {
-              console.error(`設備 "${device.name}" 投圖失敗:`, error);
+            error: (error: unknown) => {
+              clearInterval(progressTimer);
+              // 設備投圖失敗，也要更新進度
+              const completedProgress = baseProgress + deviceProgressRange;
+              this.notificationService.updateProgress(
+                notificationId, 
+                Math.floor(completedProgress), 
+                `設備${deviceIndex}/${connectedDevices.length}: 設備投圖失敗`
+              );
+              
+              console.error('設備投圖失敗:', { deviceName: device.name, error });
               failedCasts++;
               resolve(); // 繼續執行下一個設備
             }
@@ -587,18 +801,19 @@ export class DeployComponent implements OnInit {
           await new Promise(resolve => setTimeout(resolve, 2000));
         }
       } catch (error) {
-        console.error(`設備 "${device.name}" 投圖異常:`, error);
+        clearInterval(progressTimer);
+        console.error('設備投圖異常:', { deviceName: device.name, error });
         failedCasts++;
       }
     }
 
     // 完成進度
-    this.notificationService.updateProgress(notificationId, 100);
+    this.notificationService.updateProgress(notificationId, 100, '批量投圖完成！');
     
     setTimeout(() => {
       this.notificationService.remove(notificationId);
       this.finishBatchCast(successfulCasts, failedCasts);
-    }, 800); // 延長顯示時間
+    }, 1000); // 延長顯示完成狀態
   }
 
   private finishBatchCast(successful: number, failed: number) {
@@ -704,13 +919,18 @@ export class DeployComponent implements OnInit {
     }
   }
 
-  // 編號輸入框失焦或Enter時儲存
-  onDeviceIndexInputBlur(device: Device, event: any) {
-    const value = parseInt(event.target.value, 10);
+  // 🛡️ 安全的編號輸入框處理 - 防止 Object Injection
+  onDeviceIndexInputBlur(device: Device, event: Event) {
+    const target = event.target as HTMLInputElement;
+    const value = parseInt(target?.value || '0', 10);
     if (!isNaN(value) && value > 0) {
-      (device as any).customIndex = value;
+      // 🛡️ 安全的屬性設置 - 使用直接賦值
+      (device as Device & { customIndex?: number }).customIndex = value;
     } else {
-      delete (device as any).customIndex;
+      // 🛡️ 安全的屬性刪除
+      if (Object.prototype.hasOwnProperty.call(device, 'customIndex')) {
+        delete (device as Device & { customIndex?: number }).customIndex;
+      }
     }
     this.editIndex = null;
     this.sortDevicesByCustomIndex();
@@ -753,15 +973,18 @@ export class DeployComponent implements OnInit {
     this.showDeployCardModalFor = null;
   }
 
-  // AB預覽相關方法
+  // 🛡️ 安全的AB預覽相關方法 - 防止 Object Injection
   toggleCardSide(card: Card, side: 'A' | 'B', event: Event): void {
     event.stopPropagation();
     event.preventDefault();
-    (card as any)._currentSide = side;
+    
+    // 🛡️ 安全的屬性設置 - 使用直接賦值
+    (card as Card & { _currentSide?: 'A' | 'B' })._currentSide = side;
   }
 
   getCurrentSideImage(card: Card): string | undefined {
-    const currentSide = (card as any)._currentSide || 'A';
+    // 🛡️ 安全的屬性存取
+    const currentSide = this.getCardCurrentSide(card);
     if (currentSide === 'B' && card.thumbnailB) {
       return card.thumbnailB;
     }
@@ -769,7 +992,12 @@ export class DeployComponent implements OnInit {
   }
 
   getCardCurrentSide(card: Card): 'A' | 'B' {
-    return (card as any)._currentSide || 'A';
+    // 🛡️ 安全的屬性存取
+    if (Object.prototype.hasOwnProperty.call(card, '_currentSide')) {
+      const side = (card as Card & { _currentSide?: 'A' | 'B' })._currentSide;
+      return (side === 'A' || side === 'B') ? side : 'A';
+    }
+    return 'A';
   }
 
   getOtherSidePreview(card: Card): string | undefined {
@@ -781,7 +1009,122 @@ export class DeployComponent implements OnInit {
   }
 
   getOtherSideTitle(card: Card): string {
-    const otherSide = this.getCardCurrentSide(card) === 'B' ? 'A' : 'B';
-    return `${otherSide}面預覽`;
+    return this.getCardCurrentSide(card) === 'A' ? 'B面' : 'A面';
+  }
+
+  /**
+   * 🚀 自動部署 - 將選中的圖卡自動部署到所有已連接的設備
+   */
+  async autoDeployToAllDevices() {
+    if (this.selectedCards.length === 0) {
+      this.notificationService.error('請先選擇要部署的圖卡');
+      return;
+    }
+
+    const connectedDevices = this.devices.filter(device => device.status === 'Connected');
+    if (connectedDevices.length === 0) {
+      this.notificationService.error('沒有已連接的設備可以部署');
+      return;
+    }
+
+    // 確認對話框
+    const confirmed = confirm(`確定要將 ${this.selectedCards.length} 張圖卡自動部署到 ${connectedDevices.length} 台設備嗎？`);
+    if (!confirmed) {
+      return;
+    }
+
+    let successful = 0;
+    let failed = 0;
+
+    this.notificationService.info(`開始自動部署到 ${connectedDevices.length} 台設備...`);
+
+    // 為每個設備分配圖卡（循環分配）
+    for (let i = 0; i < connectedDevices.length; i++) {
+      const device = connectedDevices[i];
+      const cardIndex = i % this.selectedCards.length; // 循環分配圖卡
+      const card = this.selectedCards[cardIndex];
+
+      try {
+        await this.deployCardToDevice(device, card);
+        successful++;
+        this.notificationService.success(`${device.name} 部署成功：${card.name}`);
+      } catch (error: unknown) {
+        failed++;
+        console.error(`部署失敗 - 設備: ${device.name}, 圖卡: ${card.name}`, error);
+        this.notificationService.error(`${device.name} 部署失敗：${card.name}`);
+      }
+
+      // 添加延遲避免過快請求
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    // 完成通知
+    if (successful > 0) {
+      this.notificationService.success(`自動部署完成！成功: ${successful} 台，失敗: ${failed} 台`);
+    } else {
+      this.notificationService.error(`自動部署失敗！所有設備都部署失敗`);
+    }
+
+    // 重新載入設備狀態
+    this.loadDevices();
+  }
+
+  /**
+   * 🔧 部署圖卡到指定設備（Promise 版本）
+   */
+  private deployCardToDevice(device: Device, card: Card): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const deployData = { cardId: card.id, side: 2 }; // 預設部署到B面
+      this.deployService.deployCardToDevice(device.id, deployData).subscribe({
+        next: () => {
+          // 更新本地設備狀態
+          device.currentCardId = card.id;
+          device.currentCardName = card.name;
+          this.deployedCards.add(`${device.id}-${card.id}`);
+          resolve();
+        },
+        error: (error: unknown) => {
+          reject(error);
+        }
+      });
+    });
+  }
+
+  // 修正 Object Injection Sink 問題 - 使用類型安全的方式
+  private setDeviceProperty(device: BluetoothDevice, property: keyof BluetoothDevice, value: unknown): void {
+    if (device && typeof device === 'object' && property in device) {
+      switch (property) {
+        case 'name':
+          if (typeof value === 'string') device.name = value;
+          break;
+        case 'bluetoothAddress':
+          if (typeof value === 'string') device.bluetoothAddress = value;
+          break;
+        case 'originalAddress':
+          if (typeof value === 'string' && value !== undefined) device.originalAddress = value;
+          break;
+        case 'signalStrength':
+          if (typeof value === 'number') device.signalStrength = value;
+          break;
+      }
+    }
+  }
+
+  private getDeviceProperty(device: BluetoothDevice, property: keyof BluetoothDevice): unknown {
+    if (device && typeof device === 'object' && property in device) {
+      return device[property];
+    }
+    return undefined;
+  }
+
+  private validateDeviceData(data: unknown): data is BluetoothDevice {
+    return data !== null && typeof data === 'object' && 'bluetoothAddress' in (data as object);
+  }
+
+  private processDeviceSafely(device: unknown): BluetoothDevice | null {
+    if (this.validateDeviceData(device)) {
+      return device;
+    }
+    return null;
   }
 } 

@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, fromEvent, merge } from 'rxjs';
+import { BehaviorSubject, fromEvent } from 'rxjs';
 import { map, throttleTime, distinctUntilChanged } from 'rxjs/operators';
 import { CollaborationUser, CollaborationAction, Position } from '../models/card-design.models';
+import { CryptoService } from '../../../core/services/crypto.service';
 
 @Injectable({
   providedIn: 'root'
@@ -18,15 +19,15 @@ export class CollaborationService {
   // WebSocket 連接（模擬）
   private wsConnection: WebSocket | null = null;
 
-  constructor() {
+  constructor(private cryptoService: CryptoService) {
     this.initializeCurrentUser();
     this.setupMouseTracking();
   }
 
-  // 初始化當前用戶
+  // 🛡️ 初始化當前用戶 - 使用安全的隨機選擇
   private initializeCurrentUser(): void {
     const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#f9ca24', '#f0932b', '#eb4d4b', '#6c5ce7'];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    const randomColor = this.cryptoService.selectSecureRandomColor(colors);
     
     const currentUser: CollaborationUser = {
       id: this.generateUserId(),
@@ -115,7 +116,10 @@ export class CollaborationService {
   handleReceivedAction(action: CollaborationAction): void {
     switch (action.type) {
       case 'cursor_move':
-        this.updateCollaboratorCursor(action.userId, action.data);
+        // 🛡️ 類型保護：確保 data 是 Position 類型
+        if (this.isPosition(action.data)) {
+          this.updateCollaboratorCursor(action.userId, action.data);
+        }
         break;
       case 'element_add':
       case 'element_update':
@@ -124,6 +128,14 @@ export class CollaborationService {
         // 這些動作應該由 CardDesignerService 處理
         break;
     }
+  }
+
+  // 🛡️ 類型保護：檢查是否為 Position 類型
+  private isPosition(data: CollaborationAction['data']): data is Position {
+    return typeof data === 'object' && 
+           data !== null && 
+           typeof (data as Position).x === 'number' && 
+           typeof (data as Position).y === 'number';
   }
 
   // 更新協作者光標
@@ -135,9 +147,9 @@ export class CollaborationService {
     this.collaboratorsSubject.next(updatedCollaborators);
   }
 
-  // 工具方法
+  // 🛡️ 工具方法 - 使用安全的ID生成
   private generateUserId(): string {
-    return 'user_' + Math.random().toString(36).substr(2, 9);
+    return this.cryptoService.generateUserId();
   }
 
   // 獲取協作者顏色

@@ -72,9 +72,18 @@
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    margin-right: 0.5rem;
     
     &:hover {
       background: #005a9e;
+    }
+
+    &--cast {
+      background: #007ACC;
+      
+      &:hover {
+        background: #005a9e;
+      }
     }
   }
 
@@ -373,6 +382,21 @@
       display: flex;
       align-items: center;
     }
+  }
+
+  &__card-index {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: #007ACC;
+    color: white;
+    border-radius: 50%;
+    font-weight: bold;
+    font-size: 14px;
+    flex-shrink: 0;
+    margin-right: 0.5rem;
   }
 
   &__card-thumbnail {

@@ -13,7 +13,7 @@ interface Group {
 }
 
 @Component({
-  selector: 'app-group-list',
+  selector: 'sn-group-list',
   standalone: true,
   imports: [CommonModule, MatIconModule],
   templateUrl: './group-list.component.html',

@@ -27,11 +27,23 @@ export interface Template {
     CardItemComponent
   ],
   template: `
-    <div class="modal-overlay" (click)="onOverlayClick($event)">
-      <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-overlay" (click)="onOverlayClick($event)"
+      (keydown.enter)="onOverlayClick($event)"
+      (keydown.space)="onOverlayClick($event)"
+      tabindex="0" role="button">
+      <div class="modal-container" 
+           (click)="$event.stopPropagation()"
+           (keydown.enter)="$event.stopPropagation()"
+           (keydown.space)="$event.stopPropagation()"
+           tabindex="0" 
+           role="dialog"
+           aria-label="樣板選擇對話框">
         <div class="modal-header">
           <h2 class="modal-title">選擇樣板</h2>
-          <button mat-icon-button class="modal-close-btn" (click)="close.emit()">
+          <button mat-icon-button class="modal-close-btn" (click)="modalClose.emit()"
+            (keydown.enter)="modalClose.emit()"
+            (keydown.space)="modalClose.emit()"
+            tabindex="0" role="button">
             <mat-icon>close</mat-icon>
           </button>
         </div>
@@ -49,15 +61,27 @@ export interface Template {
           </div>
 
                     <div class="template-grid">
-            <sn-card-item
-              *ngFor="let template of filteredTemplates"
-              [card]="convertToCardItem(template)"
-              [isSelected]="selectedTemplate?.id === template.id"
-              [showDeleteButton]="true"
-              (cardClick)="selectTemplate($event)"
-              (cardDelete)="deleteTemplate($event)"
-              (sideToggle)="onSideToggle($event)">
-            </sn-card-item>
+                         <div class="template-item" 
+                  *ngFor="let template of filteredTemplates"
+                                     [class.selected]="selectedTemplate?.id === template.id"
+                  (click)="selectTemplate(template)"
+                  (keydown.enter)="selectTemplate(template)"
+                  (keydown.space)="selectTemplate(template)"
+                  tabindex="0" 
+                  role="button"
+                  [attr.aria-label]="'選擇模板 ' + template.name">
+               <img [src]="getCurrentSideImage(template)" [alt]="template.name">
+               <div class="template-info">
+                 <h4>{{ template.name }}</h4>
+                 <p>{{ template.description }}</p>
+               </div>
+               <!-- 使用共通刪除按鈕元件 -->
+               <sn-delete-button
+                 size="small"
+                 [tooltip]="'刪除樣板：' + template.name"
+                 (delete)="deleteTemplate(template)">
+               </sn-delete-button>
+             </div>
           </div>
         </div>
 
@@ -66,10 +90,16 @@ export interface Template {
             mat-raised-button
             color="primary"
             [disabled]="!selectedTemplate"
-            (click)="applyTemplate()">
+            (click)="applyTemplate()"
+            (keydown.enter)="applyTemplate()"
+            (keydown.space)="applyTemplate()"
+            tabindex="0" role="button">
             套用樣板
           </button>
-          <button mat-button class="apple-confirm-btn" (click)="close.emit()">確認</button>
+          <button mat-button class="apple-confirm-btn" (click)="modalClose.emit()"
+            (keydown.enter)="modalClose.emit()"
+            (keydown.space)="modalClose.emit()"
+            tabindex="0" role="button">確認</button>
         </div>
       </div>
     </div>
@@ -78,7 +108,7 @@ export interface Template {
 })
 export class TemplateModalComponent implements OnInit {
   @Input() isVisible = false;
-  @Output() close = new EventEmitter<void>();
+  @Output() modalClose = new EventEmitter<void>();
   @Output() templateSelected = new EventEmitter<Template>();
 
   selectedCategory = '全部';
@@ -125,6 +155,10 @@ export class TemplateModalComponent implements OnInit {
 
   selectCategory(category: string): void {
     this.selectedCategory = category;
+    this.filterTemplates();
+  }
+
+  filterTemplates(): void {
     this.selectedTemplate = null;
     this.loadTemplates();
   }
@@ -136,7 +170,7 @@ export class TemplateModalComponent implements OnInit {
     if ('_currentSide' in cardOrTemplate) {
       template = this.templates.find(t => t.id === cardOrTemplate.id)!;
     } else {
-      template = cardOrTemplate;
+      template = cardOrTemplate as TemplateListItem;
     }
     
     // 轉換為 Template 格式
@@ -156,8 +190,9 @@ export class TemplateModalComponent implements OnInit {
     if ('_currentSide' in cardOrTemplate) {
       template = this.templates.find(t => t.id === cardOrTemplate.id)!;
     } else {
-      template = cardOrTemplate;
+      template = cardOrTemplate as TemplateListItem;
     }
+    
     if (confirm(`確定要刪除樣板「${template.name}」嗎？`)) {
       this.templateApiService.deleteTemplate(template.id).subscribe({
         next: () => {
@@ -177,13 +212,13 @@ export class TemplateModalComponent implements OnInit {
   applyTemplate(): void {
     if (this.selectedTemplate) {
       this.templateSelected.emit(this.selectedTemplate);
-      this.close.emit();
+      this.modalClose.emit();
     }
   }
 
   onOverlayClick(event: Event): void {
     if (event.target === event.currentTarget) {
-      this.close.emit();
+      this.modalClose.emit();
     }
   }
 
@@ -214,12 +249,13 @@ export class TemplateModalComponent implements OnInit {
     return {
       id: template.id,
       name: template.name,
-      description: template.description,
+      description: template.description || '',
       thumbnailA: template.thumbnailA,
       thumbnailB: template.thumbnailB,
       category: template.category,
+      status: 1,
       _currentSide: template._currentSide,
-      isPublic: template.isPublic,
+      isPublic: template.isPublic || false,
       createdAt: template.createdAt
     };
   }

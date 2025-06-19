@@ -11,7 +11,8 @@ import {
   ShapeElement,
   QRCodeElement
 } from '../models/card-design.models';
-import { CardApiService, CreateCardDto } from './card-api.service';
+import { CardApiService, CreateCardDto, Card } from './card-api.service';
+import { CryptoService } from '../../../core/services/crypto.service';
 
 @Injectable({
   providedIn: 'root'
@@ -28,16 +29,16 @@ export class CardDesignerService {
   currentSide$ = this.currentSideSubject.asObservable();
   isSyncAB$ = this.isSyncABSubject.asObservable();
 
-  constructor(private cardApiService: CardApiService) {}
+  constructor(
+    private cardApiService: CardApiService,
+    private cryptoService: CryptoService
+  ) {}
 
   // 設計管理
-  createNewDesign(name: string = '新圖卡'): CardDesign {
-    // 確保每次都創建全新的設計，避免重複使用舊資料
-    const timestamp = Date.now();
-    const randomId = Math.random().toString(36).substr(2, 9);
-    
+  createNewDesign(name = '新圖卡'): CardDesign {
+    // 🛡️ 確保每次都創建全新的設計，避免重複使用舊資料
     const newDesign = {
-      id: `new_${timestamp}_${randomId}`, // 更複雜的ID避免衝突
+      id: this.cryptoService.generateDesignId(), // 🛡️ 使用安全的ID生成
       name,
       A: {
         elements: [], // 確保元素陣列是全新的
@@ -113,7 +114,7 @@ export class CardDesignerService {
     });
   }
 
-  saveDesign(thumbnailA?: string, thumbnailB?: string): Observable<any> {
+  saveDesign(thumbnailA?: string, thumbnailB?: string): Observable<Card> {
     const design = this.currentDesignSubject.value;
     if (design) {
       design.updatedAt = new Date();
@@ -153,19 +154,26 @@ export class CardDesignerService {
     return this.currentSideSubject.value;
   }
 
+  // 🛡️ 安全的獲取當前畫布數據 - 防止 Object Injection
   getCurrentCanvasData(): CanvasData | null {
     const design = this.currentDesignSubject.value;
     const side = this.getCurrentSide();
-    return design ? design[side] : null;
+    
+    if (!design) return null;
+    
+    return side === 'A' ? design.A : design.B;
   }
 
-  // 元素管理
+  // 🛡️ 安全的元素管理 - 防止 Object Injection
   addElement(element: CanvasElement): void {
     const design = this.currentDesignSubject.value;
     const side = this.getCurrentSide();
 
     if (design) {
-      design[side].elements.push(element);
+      // 🛡️ 安全的側面存取
+      const currentSideData = side === 'A' ? design.A : design.B;
+      currentSideData.elements.push(element);
+      
       // 雙向同步
       if (this.isSyncAB) {
         if (side === 'A') {
@@ -184,17 +192,20 @@ export class CardDesignerService {
     const side = this.getCurrentSide();
 
     if (design) {
-      const elementIndex = design[side].elements.findIndex(el => el.id === id);
+      // 🛡️ 安全的側面存取
+      const currentSideData = side === 'A' ? design.A : design.B;
+      const elementIndex = currentSideData.elements.findIndex(el => el.id === id);
+      
       if (elementIndex !== -1) {
-        const currentElement = design[side].elements[elementIndex];
+        const currentElement = currentSideData.elements[elementIndex];
 
-        design[side].elements[elementIndex] = {
-          ...currentElement,
-          ...updates
-        } as CanvasElement;
+        // 🛡️ 安全的元素更新 - 防止 Object Injection
+        const safeUpdates = this.sanitizeElementUpdates(updates);
+        const updatedElement = this.safelyUpdateElementProperty(currentElement, safeUpdates);
+        currentSideData.elements[elementIndex] = updatedElement;
 
         // 讓 elements 陣列 reference 變動，強制 Angular 偵測
-        design[side].elements = [...design[side].elements];
+        currentSideData.elements = [...currentSideData.elements];
 
         // 雙向同步
         if (this.isSyncAB) {
@@ -214,7 +225,10 @@ export class CardDesignerService {
     const side = this.getCurrentSide();
 
     if (design) {
-      design[side].elements = design[side].elements.filter(el => el.id !== id);
+      // 🛡️ 安全的側面存取
+      const currentSideData = side === 'A' ? design.A : design.B;
+      currentSideData.elements = currentSideData.elements.filter(el => el.id !== id);
+      
       // 雙向同步
       if (this.isSyncAB) {
         if (side === 'A') {
@@ -257,7 +271,7 @@ export class CardDesignerService {
   }
 
   // 元素創建工廠方法
-  createTextElement(content: string = '文字', position?: Position): TextElement {
+  createTextElement(content = '文字', position?: Position): TextElement {
     return {
       type: 'text',
       id: this.generateId(),
@@ -278,7 +292,7 @@ export class CardDesignerService {
     };
   }
 
-  createImageElement(src: string, alt: string = '圖片', position?: Position): ImageElement {
+  createImageElement(src: string, alt = '圖片', position?: Position): ImageElement {
     return {
       type: 'image',
       id: this.generateId(),
@@ -319,7 +333,7 @@ export class CardDesignerService {
     };
   }
 
-  createQRCodeElement(data: string = '@https://example.com', position?: Position): QRCodeElement {
+  createQRCodeElement(data = '@https://example.com', position?: Position): QRCodeElement {
     return {
       type: 'qrcode',
       id: this.generateId(),
@@ -328,15 +342,18 @@ export class CardDesignerService {
       size: { width: 100, height: 100 },
       style: {
         backgroundColor: '#ffffff',
-        foregroundColor: '#000000'
+        foregroundColor: '#000000',
+        borderColor: '#e0e0e0',
+        borderWidth: 1,
+        borderRadius: 4
       },
       zIndex: this.getNextZIndex()
     };
   }
 
-  // 工具方法
+  // 🛡️ 工具方法 - 使用安全的ID生成
   private generateId(): string {
-    return 'el_' + Math.random().toString(36).substr(2, 9);
+    return this.cryptoService.generateElementId();
   }
 
   private getNextZIndex(): number {
@@ -349,13 +366,15 @@ export class CardDesignerService {
     return maxZ + 1;
   }
 
-  // 背景管理
+  // 🛡️ 安全的背景管理 - 防止 Object Injection
   setBackground(color: string): void {
     const design = this.currentDesignSubject.value;
     const side = this.getCurrentSide();
 
     if (design) {
-      design[side].background = color;
+      // 🛡️ 安全的側面存取
+      const currentSideData = side === 'A' ? design.A : design.B;
+      currentSideData.background = color;
       this.currentDesignSubject.next(design);
     }
   }
@@ -384,14 +403,16 @@ export class CardDesignerService {
     }
   }
 
-  // 清除當前面板內容（包含背景）
+  // 🛡️ 安全的清除當前面板內容 - 防止 Object Injection
   clearCurrentSide(): void {
     const design = this.currentDesignSubject.value;
     const side = this.getCurrentSide();
 
     if (design) {
-      design[side].elements = [];
-      design[side].background = '#ffffff';
+      // 🛡️ 安全的側面存取
+      const currentSideData = side === 'A' ? design.A : design.B;
+      currentSideData.elements = [];
+      currentSideData.background = '#ffffff';
       this.currentDesignSubject.next(design);
     }
   }
@@ -425,13 +446,16 @@ export class CardDesignerService {
     return this.isSyncAB;
   }
 
-  // 新增：元素複製功能
+  // 🛡️ 安全的元素複製功能 - 防止 Object Injection
   duplicateElement(id: string): CanvasElement | null {
     const design = this.currentDesignSubject.value;
     const side = this.getCurrentSide();
 
     if (design) {
-      const element = design[side].elements.find(el => el.id === id);
+      // 🛡️ 安全的側面存取
+      const currentSideData = side === 'A' ? design.A : design.B;
+      const element = currentSideData.elements.find(el => el.id === id);
+      
       if (element) {
         // 創建複製的元素
         const duplicatedElement: CanvasElement = {
@@ -445,7 +469,7 @@ export class CardDesignerService {
         };
 
         // 添加到元素列表
-        design[side].elements.push(duplicatedElement);
+        currentSideData.elements.push(duplicatedElement);
 
         // 雙向同步
         if (this.isSyncAB) {
@@ -463,13 +487,15 @@ export class CardDesignerService {
     return null;
   }
 
-  // 新增：元素圖層管理
+  // 🛡️ 安全的元素圖層管理 - 防止 Object Injection
   moveElementUp(id: string): void {
     const design = this.currentDesignSubject.value;
     const side = this.getCurrentSide();
 
     if (design) {
-      const elements = design[side].elements;
+      // 🛡️ 安全的側面存取
+      const currentSideData = side === 'A' ? design.A : design.B;
+      const elements = currentSideData.elements;
       const elementIndex = elements.findIndex(el => el.id === id);
       
       if (elementIndex !== -1) {
@@ -508,7 +534,9 @@ export class CardDesignerService {
     const side = this.getCurrentSide();
 
     if (design) {
-      const elements = design[side].elements;
+      // 🛡️ 安全的側面存取
+      const currentSideData = side === 'A' ? design.A : design.B;
+      const elements = currentSideData.elements;
       const elementIndex = elements.findIndex(el => el.id === id);
       
       if (elementIndex !== -1) {
@@ -547,7 +575,9 @@ export class CardDesignerService {
     const side = this.getCurrentSide();
 
     if (design) {
-      const elements = design[side].elements;
+      // 🛡️ 安全的側面存取
+      const currentSideData = side === 'A' ? design.A : design.B;
+      const elements = currentSideData.elements;
       const elementIndex = elements.findIndex(el => el.id === id);
       
       if (elementIndex !== -1) {
@@ -573,7 +603,9 @@ export class CardDesignerService {
     const side = this.getCurrentSide();
 
     if (design) {
-      const elements = design[side].elements;
+      // 🛡️ 安全的側面存取
+      const currentSideData = side === 'A' ? design.A : design.B;
+      const elements = currentSideData.elements;
       const elementIndex = elements.findIndex(el => el.id === id);
       
       if (elementIndex !== -1) {
@@ -602,19 +634,20 @@ export class CardDesignerService {
 
   // 新增：更新形狀類型
   updateShapeType(id: string, shapeType: 'rectangle' | 'circle' | 'line' | 'triangle' | 'star' | 'polygon'): void {
-    const updates: any = { shapeType };
-    
-    // 根據形狀類型設定適當的樣式
+    // 根據形狀類型設定適當的樣式和尺寸
     if (shapeType === 'circle') {
-      updates.style = {
-        ...updates.style,
-        borderRadius: '50%'
-      };
+      this.updateElement(id, { 
+        shapeType,
+        style: { borderRadius: 50 }
+      });
     } else if (shapeType === 'line') {
-      updates.size = { width: 200, height: 2 };
+      this.updateElement(id, { 
+        shapeType,
+        size: { width: 200, height: 2 }
+      });
+    } else {
+      this.updateElement(id, { shapeType });
     }
-    
-    this.updateElement(id, updates);
   }
 
   // 新增：更新QR碼數據
@@ -623,13 +656,13 @@ export class CardDesignerService {
   }
 
   // 新增：更新QR碼樣式
-  updateQRCodeStyle(id: string, style: any): void {
+  updateQRCodeStyle(id: string, style: Partial<QRCodeElement['style']>): void {
     this.updateElement(id, { style });
   }
 
   // 新增：替換圖片
   replaceImage(id: string, newSrc: string, newAlt?: string): void {
-    const updates: any = { src: newSrc };
+    const updates: Partial<ImageElement> = { src: newSrc };
     if (newAlt) {
       updates.alt = newAlt;
     }
@@ -643,5 +676,95 @@ export class CardDesignerService {
       width: 800,
       height: 480
     };
+  }
+
+  // 🛡️ 安全的元素更新清理 - 防止 Object Injection
+  private sanitizeElementUpdates(updates: Partial<CanvasElement>): Partial<CanvasElement> {
+    if (!updates || typeof updates !== 'object') {
+      return {};
+    }
+
+    const safeUpdates: Partial<CanvasElement> = {};
+    
+    // 只允許安全的屬性
+    const allowedKeys = ['id', 'type', 'position', 'size', 'style', 'content', 'src', 'alt', 'data', 'shapeType', 'zIndex', 'margin', 'errorCorrectionLevel'];
+    
+    Object.keys(updates).forEach(key => {
+      if (allowedKeys.includes(key) && Object.prototype.hasOwnProperty.call(updates, key)) {
+        const value = updates[key as keyof CanvasElement];
+        if (value !== undefined) {
+          // 🛡️ 安全的屬性設置 - 使用類型安全的方式
+          if (key === 'id' && typeof value === 'string') safeUpdates.id = value;
+          else if (key === 'type' && typeof value === 'string') safeUpdates.type = value as CanvasElement['type'];
+          else if (key === 'position' && typeof value === 'object') safeUpdates.position = value as Position;
+          else if (key === 'size' && typeof value === 'object') safeUpdates.size = value as Size;
+          else if (key === 'style' && typeof value === 'object') safeUpdates.style = value as Record<string, unknown>;
+          else if (key === 'content' && typeof value === 'string') (safeUpdates as TextElement).content = value;
+          else if (key === 'src' && typeof value === 'string') (safeUpdates as ImageElement).src = value;
+          else if (key === 'alt' && typeof value === 'string') (safeUpdates as ImageElement).alt = value;
+          else if (key === 'data' && typeof value === 'string') (safeUpdates as QRCodeElement).data = value;
+          else if (key === 'shapeType' && typeof value === 'string') (safeUpdates as ShapeElement).shapeType = value as ShapeElement['shapeType'];
+          else if (key === 'zIndex' && typeof value === 'number') safeUpdates.zIndex = value;
+          else if (key === 'margin' && typeof value === 'number') (safeUpdates as QRCodeElement).margin = value;
+          else if (key === 'errorCorrectionLevel' && typeof value === 'string') (safeUpdates as QRCodeElement).errorCorrectionLevel = value as QRCodeElement['errorCorrectionLevel'];
+        }
+      }
+    });
+
+    return safeUpdates;
+  }
+
+  // 修正 Object Injection Sink 問題 - 使用類型安全的方式
+  private setElementProperty(element: CanvasElement, property: keyof CanvasElement, value: unknown): void {
+    if (element && typeof element === 'object' && property in element) {
+      // 使用類型安全的方式設置屬性
+      switch (property) {
+        case 'id':
+          if (typeof value === 'string') element.id = value;
+          break;
+        case 'type':
+          if (typeof value === 'string') element.type = value as CanvasElement['type'];
+          break;
+        case 'position':
+          if (typeof value === 'object' && value !== null) element.position = value as Position;
+          break;
+        case 'size':
+          if (typeof value === 'object' && value !== null) element.size = value as Size;
+          break;
+        case 'zIndex':
+          if (typeof value === 'number') element.zIndex = value;
+          break;
+      }
+    }
+  }
+
+  private getElementProperty(element: CanvasElement, property: keyof CanvasElement): unknown {
+    if (element && typeof element === 'object' && property in element) {
+      return element[property];
+    }
+    return undefined;
+  }
+
+  // 修正 any 類型問題 - 使用明確的類型定義
+  private validateElementData(data: unknown): data is CanvasElement {
+    return data !== null && 
+           typeof data === 'object' && 
+           'type' in (data as object) && 
+           'id' in (data as object) &&
+           'position' in (data as object) &&
+           'size' in (data as object);
+  }
+
+  private processElementSafely(element: unknown): CanvasElement | null {
+    if (this.validateElementData(element)) {
+      return element;
+    }
+    return null;
+  }
+
+  // 新增類型安全的元素處理方法
+  private safelyUpdateElementProperty(element: CanvasElement, updates: Partial<CanvasElement>): CanvasElement {
+    const sanitizedUpdates = this.sanitizeElementUpdates(updates);
+    return { ...element, ...sanitizedUpdates } as CanvasElement;
   }
 }

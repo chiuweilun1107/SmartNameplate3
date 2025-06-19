@@ -10,7 +10,10 @@ import { MatIconModule } from '@angular/material/icon';
     <div class="delete-button"
          [class]="'delete-button--' + size"
          [title]="tooltip"
-         (click)="onDelete($event)">
+         (click)="onDelete($event)"
+         (keydown.enter)="onDelete($event)"
+         (keydown.space)="onDelete($event)"
+         tabindex="0" role="button">
       <mat-icon>delete</mat-icon>
     </div>
   `,

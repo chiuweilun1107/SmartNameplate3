@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CanvasData, CanvasElement } from '../models/card-design.models';
+import { CanvasData } from '../models/card-design.models';
 
 @Component({
   selector: 'sn-card-preview',

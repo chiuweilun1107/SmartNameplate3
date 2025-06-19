@@ -18,7 +18,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   @ViewChild('carouselTrack', { static: false }) carouselTrack!: ElementRef;
   
   currentSlide = 1; // 從1開始，因為索引0是克隆的最後一張
-  autoplayInterval: any;
+  autoplayInterval: ReturnType<typeof setInterval> | null = null;
   autoplayDelay = 5000; // 5秒自動切換
   isTransitioning = false; // 避免過渡期間的操作
   
@@ -150,6 +150,7 @@ export class HomeComponent implements OnInit, OnDestroy {
   stopAutoplay(): void {
     if (this.autoplayInterval) {
       clearInterval(this.autoplayInterval);
+      this.autoplayInterval = null;
     }
   }
 
@@ -161,10 +162,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.startAutoplay();
   }
 
-  // 獲取當前顯示的真實幻燈片數據（排除克隆）
+  // 🛡️ 安全的獲取當前顯示的真實幻燈片數據（排除克隆）- 防止 Object Injection
   get currentSlideData() {
     const realIndex = this.getRealSlideIndex();
-    return this.originalSlides[realIndex];
+    return this.originalSlides.at(realIndex) || this.originalSlides[0];
   }
 
   // 獲取當前幻燈片在原始數組中的索引（用於指示器）

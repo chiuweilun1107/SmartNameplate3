@@ -3,7 +3,8 @@
   <!-- 頂部工具列 -->
   <header class="card-designer__header">
     <div class="card-designer__header-left">
-      <button class="card-designer__btn card-designer__btn--back" (click)="goBack()">
+      <button class="card-designer__btn card-designer__btn--back" (click)="goBack()"
+              (keydown.enter)="goBack()" (keydown.space)="goBack()" tabindex="0" role="button">
         <mat-icon>arrow_back</mat-icon>
         <span>返回</span>
       </button>
@@ -16,20 +17,23 @@
         <button 
           class="card-designer__side-btn"
           [class.card-designer__side-btn--active]="currentSide === 'A'"
-          (click)="switchSide('A')">
+          (click)="switchSide('A')"
+          (keydown.enter)="switchSide('A')" (keydown.space)="switchSide('A')" tabindex="0" role="button">
           A面
         </button>
         <button 
           class="card-designer__side-btn"
           [class.card-designer__side-btn--active]="currentSide === 'B'"
-          (click)="switchSide('B')">
+          (click)="switchSide('B')"
+          (keydown.enter)="switchSide('B')" (keydown.space)="switchSide('B')" tabindex="0" role="button">
           B面
         </button>
       </div>
     </div>
     
     <div class="card-designer__header-right">
-      <button class="card-designer__btn card-designer__btn--save" (click)="saveCard()">
+      <button class="card-designer__btn card-designer__btn--save" (click)="saveCard()"
+              (keydown.enter)="saveCard()" (keydown.space)="saveCard()" tabindex="0" role="button">
         <mat-icon>save</mat-icon>
         <span>儲存</span>
       </button>
@@ -44,19 +48,23 @@
       <div class="card-designer__tool-section">
         <h3 class="card-designer__tool-title">元素工具</h3>
         <div class="card-designer__tools">
-          <button class="card-designer__tool" (click)="addElement('text')" title="添加文字">
+          <button class="card-designer__tool" (click)="addElement('text')" title="添加文字"
+                  (keydown.enter)="addElement('text')" (keydown.space)="addElement('text')" tabindex="0" role="button">
             <mat-icon>text_fields</mat-icon>
             <span>文字</span>
           </button>
-          <button class="card-designer__tool" (click)="addElement('image')" title="添加圖片">
+          <button class="card-designer__tool" (click)="addElement('image')" title="添加圖片"
+                  (keydown.enter)="addElement('image')" (keydown.space)="addElement('image')" tabindex="0" role="button">
             <mat-icon>image</mat-icon>
             <span>圖片</span>
           </button>
-          <button class="card-designer__tool" (click)="addElement('shape')" title="添加形狀">
+          <button class="card-designer__tool" (click)="addElement('shape')" title="添加形狀"
+                  (keydown.enter)="addElement('shape')" (keydown.space)="addElement('shape')" tabindex="0" role="button">
             <mat-icon>category</mat-icon>
             <span>形狀</span>
           </button>
-          <button class="card-designer__tool" (click)="addElement('qrcode')" title="添加QR碼">
+          <button class="card-designer__tool" (click)="addElement('qrcode')" title="添加QR碼"
+                  (keydown.enter)="addElement('qrcode')" (keydown.space)="addElement('qrcode')" tabindex="0" role="button">
             <mat-icon>qr_code</mat-icon>
             <span>QR碼</span>
           </button>
@@ -70,17 +78,23 @@
           <div *ngFor="let element of getElementsInZOrder(); trackBy: trackElement" 
                class="card-designer__layer"
                [class.card-designer__layer--selected]="selectedElementId === element.id"
-               (click)="selectElement(element.id)">
+               (click)="selectElement(element.id)"
+               (keydown.enter)="selectElement(element.id)"
+               (keydown.space)="selectElement(element.id)"
+               tabindex="0" role="button">
             <mat-icon class="card-designer__layer-icon">{{ getElementIcon(element.type) }}</mat-icon>
             <span class="card-designer__layer-name">{{ getElementDisplayName(element) }}</span>
             <div class="card-designer__layer-actions">
-              <button class="card-designer__layer-btn" (click)="moveElementUp(element.id); $event.stopPropagation()" title="上移">
+              <button class="card-designer__layer-btn" (click)="moveElementUp(element.id); $event.stopPropagation()" title="上移"
+                      (keydown.enter)="moveElementUp(element.id); $event.stopPropagation()" (keydown.space)="moveElementUp(element.id); $event.stopPropagation()" tabindex="0" role="button">
                 <mat-icon>keyboard_arrow_up</mat-icon>
               </button>
-              <button class="card-designer__layer-btn" (click)="moveElementDown(element.id); $event.stopPropagation()" title="下移">
+              <button class="card-designer__layer-btn" (click)="moveElementDown(element.id); $event.stopPropagation()" title="下移"
+                      (keydown.enter)="moveElementDown(element.id); $event.stopPropagation()" (keydown.space)="moveElementDown(element.id); $event.stopPropagation()" tabindex="0" role="button">
                 <mat-icon>keyboard_arrow_down</mat-icon>
               </button>
-              <button class="card-designer__layer-btn" (click)="deleteElement(element.id); $event.stopPropagation()" title="刪除">
+              <button class="card-designer__layer-btn" (click)="deleteElement(element.id); $event.stopPropagation()" title="刪除"
+                      (keydown.enter)="deleteElement(element.id); $event.stopPropagation()" (keydown.space)="deleteElement(element.id); $event.stopPropagation()" tabindex="0" role="button">
                 <mat-icon>delete</mat-icon>
               </button>
             </div>
@@ -92,8 +106,8 @@
       <div class="card-designer__tool-section" *ngIf="hasTextElements()">
         <h3 class="card-designer__tool-title">
           文字標籤配置
-          <button class="card-designer__btn card-designer__btn--small" 
-                  (click)="showTagConfigModal = true">
+          <button class="card-designer__btn card-designer__btn--small" (click)="showTagConfigModal = true"
+                  (keydown.enter)="showTagConfigModal = true" (keydown.space)="showTagConfigModal = true" tabindex="0" role="button">
             <mat-icon>settings</mat-icon>
           </button>
         </h3>
@@ -123,9 +137,10 @@
       <div class="card-designer__canvas-container" 
            [style.background]="getCanvasBackground()"
            (click)="deselectAll()"
-           (mousedown)="onCanvasMouseDown($event)"
-           (mousemove)="onCanvasMouseMove($event)"
-           (mouseup)="onCanvasMouseUp($event)"
+           (keydown.enter)="deselectAll()"
+           (keydown.space)="deselectAll()"
+           tabindex="0"
+           role="button"
            #canvasContainer>
         
         <!-- 背景圖片 -->
@@ -172,14 +187,17 @@
         <div class="card-designer__canvas-controls">
           <!-- 縮放控制 -->
           <div class="card-designer__zoom-controls">
-            <button class="card-designer__zoom-btn" (click)="zoomOut()" [disabled]="canvasScale <= 0.5">
+            <button class="card-designer__zoom-btn" (click)="zoomOut()" [disabled]="canvasScale <= 0.5"
+                    (keydown.enter)="zoomOut()" (keydown.space)="zoomOut()" tabindex="0" role="button">
               <mat-icon>zoom_out</mat-icon>
             </button>
             <span class="card-designer__zoom-level">{{ (canvasScale * 100).toFixed(0) }}%</span>
-            <button class="card-designer__zoom-btn" (click)="zoomIn()" [disabled]="canvasScale >= 2">
+            <button class="card-designer__zoom-btn" (click)="zoomIn()" [disabled]="canvasScale >= 2"
+                    (keydown.enter)="zoomIn()" (keydown.space)="zoomIn()" tabindex="0" role="button">
               <mat-icon>zoom_in</mat-icon>
             </button>
-            <button class="card-designer__zoom-btn" (click)="resetZoom()">
+            <button class="card-designer__zoom-btn" (click)="resetZoom()"
+                    (keydown.enter)="resetZoom()" (keydown.space)="resetZoom()" tabindex="0" role="button">
               <mat-icon>zoom_out_map</mat-icon>
             </button>
           </div>
@@ -215,11 +233,23 @@
 </sn-element-edit-toolbar>
 
 <!-- 標籤配置模態框 -->
-<div *ngIf="showTagConfigModal" class="card-designer__modal-overlay" (click)="showTagConfigModal = false">
-  <div class="card-designer__modal" (click)="$event.stopPropagation()">
+<div *ngIf="showTagConfigModal" class="card-designer__modal-overlay"
+     (click)="showTagConfigModal = false"
+     (keydown.enter)="showTagConfigModal = false"
+     (keydown.space)="showTagConfigModal = false"
+     tabindex="0"
+     role="button">
+  <div class="card-designer__modal"
+       (click)="$event.stopPropagation()"
+       (keydown.enter)="$event.stopPropagation()"
+       (keydown.space)="$event.stopPropagation()"
+       tabindex="0"
+       role="button">
     <header class="card-designer__modal-header">
       <h2>文字標籤配置</h2>
-      <button class="card-designer__modal-close" (click)="showTagConfigModal = false">
+      <button class="card-designer__modal-close" (click)="showTagConfigModal = false"
+              (keydown.enter)="showTagConfigModal = false"
+              (keydown.space)="showTagConfigModal = false">
         <mat-icon>close</mat-icon>
       </button>
     </header>

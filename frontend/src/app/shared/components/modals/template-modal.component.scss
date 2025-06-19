@@ -88,31 +88,17 @@
     background: rgba(25, 118, 210, 0.02);
   }
 
-  .template-delete {
+  // 共通刪除按鈕的樣式會透過 DeleteButtonComponent 控制
+  ::ng-deep sn-delete-button {
     position: absolute;
-    top: 16px;
-    right: 16px;
-    z-index: 2;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255,255,255,0.9);
-    border-radius: 50%;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    cursor: pointer;
-    transition: background 0.2s, box-shadow 0.2s;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
     opacity: 0;
-    
-    &:hover {
-      background: #ffebee;
-      color: #d32f2f;
-      box-shadow: 0 4px 16px rgba(211,47,47,0.08);
-    }
+    transition: opacity 0.2s ease;
   }
 
-  &:hover .template-delete {
+  &:hover ::ng-deep sn-delete-button {
     opacity: 1;
   }
 

@@ -1,54 +1,74 @@
-import { Component, Input, Output, EventEmitter, TemplateRef, ContentChild } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 
 export interface SelectionItem {
-  id: number | string;
+  id: string | number;
   name: string;
   description?: string;
-  [key: string]: any; // 允許額外屬性
+  preview?: string;
+  data?: unknown;
 }
 
 @Component({
   selector: 'sn-generic-selection-modal',
   standalone: true,
-  imports: [
-    CommonModule,
-    MatButtonModule,
-    MatIconModule
-  ],
+  imports: [CommonModule, MatButtonModule, MatIconModule],
   template: `
-    <div class="modal-overlay" (click)="onOverlayClick($event)" *ngIf="isVisible">
-      <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-overlay" (click)="onOverlayClick($event)"
+      (keydown.enter)="onOverlayClick($event)"
+      (keydown.space)="onOverlayClick($event)"
+      tabindex="0" role="button">
+      <div class="modal-container" 
+           (click)="$event.stopPropagation()"
+           (keydown.enter)="$event.stopPropagation()"
+           (keydown.space)="$event.stopPropagation()"
+           tabindex="0" 
+           role="dialog"
+           aria-label="通用選擇對話框">
         <div class="modal-header">
           <h2 class="modal-title">{{ title }}</h2>
-          <button 
-            class="modal-close-btn"
-            (click)="close.emit()">
-            <span class="close-icon">×</span>
+          <button mat-icon-button class="modal-close-btn" (click)="modalClose.emit()"
+            (keydown.enter)="modalClose.emit()"
+            (keydown.space)="modalClose.emit()"
+            tabindex="0" role="button">
+            <mat-icon>close</mat-icon>
           </button>
         </div>
 
         <div class="modal-content">
           <div class="selection-grid">
-            <ng-content></ng-content>
+            <div
+              *ngFor="let item of items"
+              class="selection-item"
+              [class.selected]="selectedItem === item"
+              (click)="selectItem(item)"
+              (keydown.enter)="selectItem(item)"
+              (keydown.space)="selectItem(item)"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="'選擇項目 ' + item.name">
+              <div class="item-preview" *ngIf="item.preview">
+                <img [src]="item.preview" [alt]="item.name">
+              </div>
+              <div class="item-info">
+                <h3 class="item-name">{{ item.name }}</h3>
+                <p class="item-description" *ngIf="item.description">{{ item.description }}</p>
+              </div>
+            </div>
           </div>
         </div>
 
         <div class="modal-footer">
-          <button 
-            class="modal-btn modal-btn--secondary"
-            (click)="close.emit()">
-            {{ cancelText }}
-          </button>
-          <button 
-            *ngIf="showConfirmButton"
-            class="modal-btn modal-btn--primary"
-            [disabled]="!hasSelection"
+          <button
+            mat-raised-button
+            color="primary"
+            [disabled]="!selectedItem"
             (click)="confirmSelection()">
-            {{ confirmText }}
+            確認選擇
           </button>
+          <button mat-button (click)="modalClose.emit()">取消</button>
         </div>
       </div>
     </div>
@@ -56,58 +76,29 @@ export interface SelectionItem {
   styleUrls: ['./generic-selection-modal.component.scss']
 })
 export class GenericSelectionModalComponent {
-  @Input() isVisible = false;
   @Input() title = '選擇項目';
   @Input() items: SelectionItem[] = [];
-  @Input() selectedItems: (string | number)[] = [];
-  @Input() multiSelect = false;
-  @Input() showConfirmButton = true;
-  @Input() confirmText = '確認選擇';
-  @Input() cancelText = '取消';
+  @Input() isVisible = false;
 
-  @Output() close = new EventEmitter<void>();
-  @Output() selectionChange = new EventEmitter<SelectionItem[]>();
-  @Output() itemSelect = new EventEmitter<SelectionItem>();
+  @Output() modalClose = new EventEmitter<void>();
+  @Output() itemSelected = new EventEmitter<SelectionItem>();
 
-  get hasSelection(): boolean {
-    return this.selectedItems.length > 0;
-  }
+  selectedItem: SelectionItem | null = null;
 
   onOverlayClick(event: Event): void {
     if (event.target === event.currentTarget) {
-      this.close.emit();
+      this.modalClose.emit();
     }
   }
 
   confirmSelection(): void {
-    const selected = this.items.filter(item => 
-      this.selectedItems.includes(item.id)
-    );
-    this.selectionChange.emit(selected);
-    this.close.emit();
-  }
-
-  selectItem(item: SelectionItem): void {
-    if (this.multiSelect) {
-      // 多選模式
-      const index = this.selectedItems.indexOf(item.id);
-      if (index > -1) {
-        this.selectedItems.splice(index, 1);
-      } else {
-        this.selectedItems.push(item.id);
-      }
-    } else {
-      // 單選模式
-      this.selectedItems = [item.id];
-      if (!this.showConfirmButton) {
-        // 如果不顯示確認按鈕，直接選擇
-        this.itemSelect.emit(item);
-        this.close.emit();
-      }
+    if (this.selectedItem) {
+      this.itemSelected.emit(this.selectedItem);
+      this.modalClose.emit();
     }
   }
 
-  isSelected(item: SelectionItem): boolean {
-    return this.selectedItems.includes(item.id);
+  selectItem(item: SelectionItem): void {
+    this.selectedItem = item;
   }
 } 

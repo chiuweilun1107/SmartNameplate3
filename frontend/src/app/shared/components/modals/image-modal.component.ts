@@ -4,7 +4,7 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { TagButtonComponent } from '../tags/tag-button.component';
 import { DeleteButtonComponent } from '../delete-button/delete-button.component';
-import { ElementImageApiService, ElementImage } from '../../../features/cards/services/element-image-api.service';
+import { ElementImageApiService } from '../../../features/cards/services/element-image-api.service';
 
 export interface ImageOption {
   id?: number;
@@ -26,11 +26,23 @@ export interface ImageOption {
     DeleteButtonComponent
   ],
   template: `
-    <div class="modal-overlay" (click)="onOverlayClick($event)">
-      <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-overlay" (click)="onOverlayClick($event)"
+      (keydown.enter)="onOverlayClick($event)"
+      (keydown.space)="onOverlayClick($event)"
+      tabindex="0" role="button">
+      <div class="modal-container" 
+           (click)="$event.stopPropagation()"
+           (keydown.enter)="$event.stopPropagation()"
+           (keydown.space)="$event.stopPropagation()"
+           tabindex="0" 
+           role="dialog"
+           aria-label="圖片選擇對話框">
         <div class="modal-header">
           <h2 class="modal-title">選擇圖片</h2>
-          <button mat-icon-button class="modal-close-btn" (click)="closeModal()">
+          <button mat-icon-button class="modal-close-btn" (click)="closeModal()"
+            (keydown.enter)="closeModal()"
+            (keydown.space)="closeModal()"
+            tabindex="0" role="button">
             <mat-icon>close</mat-icon>
           </button>
         </div>
@@ -43,6 +55,7 @@ export interface ImageOption {
               [label]="category.label"
               [icon]="category.icon"
               [isActive]="selectedCategory === category.label"
+              [value]="category.label"
               (tagClick)="selectCategory($event)">
             </sn-tag-button>
           </div>
@@ -50,7 +63,12 @@ export interface ImageOption {
           <!-- 圖片網格 -->
           <div class="modal-grid">
             <!-- 上傳區域放在第一個位置 -->
-            <div class="modal-item upload-item" (click)="triggerFileInput()">
+            <div class="modal-item upload-item" (click)="triggerFileInput()"
+              (keydown.enter)="triggerFileInput()"
+              (keydown.space)="triggerFileInput()"
+              tabindex="0" 
+              role="button"
+              aria-label="點擊上傳圖片">
               <div class="upload-area">
                 <mat-icon>cloud_upload</mat-icon>
                 <p>點擊上傳圖片</p>
@@ -68,7 +86,11 @@ export interface ImageOption {
               *ngFor="let image of filteredImages"
               class="modal-item"
               [class.selected]="selectedImage?.id === image.id"
-              (click)="selectImage(image)">
+              (click)="selectImage(image)"
+              (keydown.enter)="selectImage(image)"
+              (keydown.space)="selectImage(image)"
+              tabindex="0" role="button"
+              [attr.aria-label]="'選擇圖片 ' + (image.name || '圖片')">
               <div class="modal-item-actions">
                 <sn-delete-button
                   *ngIf="!image.isTemporary"
@@ -92,19 +114,26 @@ export interface ImageOption {
             mat-raised-button
             color="primary"
             [disabled]="!selectedImage"
-            (click)="confirm()">
+            (click)="confirm()"
+            (keydown.enter)="confirm()"
+            (keydown.space)="confirm()"
+            tabindex="0" role="button">
             載入圖片
           </button>
-          <button mat-button class="apple-confirm-btn" (click)="closeModal()">確認</button>
+          <button mat-button class="apple-confirm-btn" (click)="closeModal()"
+            (keydown.enter)="closeModal()"
+            (keydown.space)="closeModal()"
+            tabindex="0" role="button">確認</button>
         </div>
       </div>
     </div>
-  `
+  `,
+  styleUrls: ['./image-modal.component.scss']
 })
 export class ImageModalComponent implements OnInit {
   @Input() isVisible = false;
   @Output() imageSelected = new EventEmitter<ImageOption>();
-  @Output() close = new EventEmitter<void>();
+  @Output() modalClose = new EventEmitter<void>();
   @ViewChild('fileInput') fileInput!: ElementRef<HTMLInputElement>;
 
   images: ImageOption[] = [];
@@ -352,7 +381,7 @@ export class ImageModalComponent implements OnInit {
   }
 
   closeModal(): void {
-    this.close.emit();
+    this.modalClose.emit();
   }
 
   onOverlayClick(event: Event): void {

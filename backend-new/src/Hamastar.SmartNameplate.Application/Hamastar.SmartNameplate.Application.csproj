@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Hamastar.SmartNameplate</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hamastar.SmartNameplate.Application.Contracts\Hamastar.SmartNameplate.Application.Contracts.csproj" />
+    <ProjectReference Include="..\Hamastar.SmartNameplate.EntityFrameworkCore\Hamastar.SmartNameplate.EntityFrameworkCore.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Volo.Abp.Ddd.Application" Version="8.0.0" />
+    <PackageReference Include="Volo.Abp.Authorization" Version="8.0.0" />
+    <PackageReference Include="Volo.Abp.Uow" Version="8.0.0" />
+    <PackageReference Include="HtmlSanitizer" Version="8.0.865" />
+    <PackageReference Include="Serilog" Version="3.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Authorization" Version="8.0.0" />
+  </ItemGroup>
+
+</Project> 

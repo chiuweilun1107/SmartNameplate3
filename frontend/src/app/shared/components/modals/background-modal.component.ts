@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { FormsModule } from '@angular/forms';
-import { BackgroundApiService, BackgroundImage } from '../../../features/cards/services/background-api.service';
-import { CustomColorApiService, CustomColor } from '../../../features/cards/services/custom-color-api.service';
+import { BackgroundApiService } from '../../../features/cards/services/background-api.service';
+import { CustomColorApiService } from '../../../features/cards/services/custom-color-api.service';
 import { DeleteButtonComponent } from '../delete-button/delete-button.component';
 import { TagButtonComponent } from '../tags/tag-button.component';
+import { MatDialogModule } from '@angular/material/dialog';
 
 export interface BackgroundOption {
   type: 'color' | 'gradient' | 'image';
@@ -27,14 +28,27 @@ export interface BackgroundOption {
     MatIconModule,
     FormsModule,
     DeleteButtonComponent,
-    TagButtonComponent
+    TagButtonComponent,
+    MatDialogModule
   ],
   template: `
-    <div class="modal-overlay" (click)="onOverlayClick($event)">
-      <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-overlay" (click)="onOverlayClick($event)"
+      (keydown.enter)="onOverlayClick($event)"
+      (keydown.space)="onOverlayClick($event)"
+      tabindex="0" role="button">
+      <div class="modal-container" 
+           (click)="$event.stopPropagation()"
+           (keydown.enter)="$event.stopPropagation()"
+           (keydown.space)="$event.stopPropagation()"
+           tabindex="0" 
+           role="dialog"
+           aria-label="背景選擇對話框">
         <div class="modal-header">
           <h2 class="modal-title">設定背景</h2>
-          <button mat-icon-button class="modal-close-btn" (click)="close.emit()">
+          <button mat-icon-button class="modal-close-btn" (click)="modalClose.emit()"
+            (keydown.enter)="modalClose.emit()"
+            (keydown.space)="modalClose.emit()"
+            tabindex="0" role="button">
             <mat-icon>close</mat-icon>
           </button>
         </div>
@@ -61,7 +75,10 @@ export interface BackgroundOption {
                   [style.background-color]="color.value"
                   [class.selected]="selectedBackground?.value === color.value"
                   [class.white-border]="color.value === '#ffffff'"
-                  (click)="selectBackground(color)">
+                  (click)="selectBackground(color)"
+                  (keydown.enter)="selectBackground(color)"
+                  (keydown.space)="selectBackground(color)"
+                  tabindex="0" role="button">
                   <!-- 如果是自訂顏色，顯示刪除按鈕 -->
                   <sn-delete-button
                     *ngIf="color.isCustomColor"
@@ -73,7 +90,11 @@ export interface BackgroundOption {
                 </div>
                 
                 <!-- 新增自訂顏色按鈕 -->
-                <div class="add-custom-color" (click)="showCustomColorPicker()">
+                <div class="add-custom-color" 
+                  (click)="showCustomColorPicker()"
+                  (keydown.enter)="showCustomColorPicker()"
+                  (keydown.space)="showCustomColorPicker()"
+                  tabindex="0" role="button">
                   <mat-icon>add</mat-icon>
                 </div>
               </div>
@@ -97,7 +118,11 @@ export interface BackgroundOption {
             <div *ngIf="selectedTab === 'image'" class="image-section">
               <div class="background-grid">
                 <!-- 上傳區域放在第一個位置 -->
-                <div class="background-item upload-item" (click)="triggerFileInput()">
+                <div class="background-item upload-item" 
+                  (click)="triggerFileInput()"
+                  (keydown.enter)="triggerFileInput()"
+                  (keydown.space)="triggerFileInput()"
+                  tabindex="0" role="button">
                   <div class="upload-area">
                     <mat-icon>cloud_upload</mat-icon>
                     <p>點擊上傳背景圖片</p>
@@ -115,7 +140,11 @@ export interface BackgroundOption {
                   *ngFor="let background of savedBackgrounds"
                   class="background-item"
                   [class.selected]="selectedBackground?.value === background.value"
-                  (click)="selectBackground(background)">
+                  (click)="selectBackground(background)"
+                  (keydown.enter)="selectBackground(background)"
+                  (keydown.space)="selectBackground(background)"
+                  tabindex="0" role="button"
+                  [attr.aria-label]="'選擇背景 ' + (background.name || '自定義')">
                   <div class="background-thumbnail">
                     <img [src]="background.preview" [alt]="background.name">
                     <div class="background-actions">
@@ -140,10 +169,16 @@ export interface BackgroundOption {
             mat-raised-button
             color="primary"
             [disabled]="!selectedBackground"
-            (click)="applyBackground()">
+            (click)="applyBackground()"
+            (keydown.enter)="applyBackground()"
+            (keydown.space)="applyBackground()"
+            tabindex="0" role="button">
             套用背景
           </button>
-          <button mat-button class="apple-confirm-btn" (click)="close.emit()">確認</button>
+          <button mat-button class="apple-confirm-btn" (click)="modalClose.emit()"
+            (keydown.enter)="modalClose.emit()"
+            (keydown.space)="modalClose.emit()"
+            tabindex="0" role="button">確認</button>
         </div>
       </div>
     </div>
@@ -152,7 +187,7 @@ export interface BackgroundOption {
 })
 export class BackgroundModalComponent implements OnInit {
   @Input() isVisible = false;
-  @Output() close = new EventEmitter<void>();
+  @Output() modalClose = new EventEmitter<void>();
   @Output() backgroundSelected = new EventEmitter<BackgroundOption>();
 
   selectedTab: 'color' | 'image' = 'color';
@@ -207,9 +242,11 @@ export class BackgroundModalComponent implements OnInit {
     this.loadCustomColors();
   }
 
-  selectTab(tab: 'color' | 'image'): void {
-    this.selectedTab = tab;
-    this.selectedBackground = null;
+  selectTab(tab: string): void {
+    if (tab === 'color' || tab === 'image') {
+      this.selectedTab = tab;
+      this.selectedBackground = null;
+    }
   }
 
   selectBackground(background: BackgroundOption): void {
@@ -424,13 +461,13 @@ export class BackgroundModalComponent implements OnInit {
   applyBackground(): void {
     if (this.selectedBackground) {
       this.backgroundSelected.emit(this.selectedBackground);
-      this.close.emit();
+      this.modalClose.emit();
     }
   }
 
   onOverlayClick(event: Event): void {
     if (event.target === event.currentTarget) {
-      this.close.emit();
+      this.modalClose.emit();
     }
   }
 }

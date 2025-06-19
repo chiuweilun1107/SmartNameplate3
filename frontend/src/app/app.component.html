@@ -16,12 +16,12 @@
   <sn-footer *ngIf="showFooter"></sn-footer>
   
   <!-- 通知元件 -->
-  <app-notification></app-notification>
+  <sn-notification></sn-notification>
   
   <!-- 登入彈跳視窗 -->
-  <app-login-modal 
+  <sn-login-modal 
     [isVisible]="showLoginModal"
     (loginSuccess)="onLoginSuccess($event)"
     (closeModalEvent)="onCloseLoginModal()">
-  </app-login-modal>
+  </sn-login-modal>
 </div>

@@ -163,7 +163,7 @@
   <sn-template-modal
     *ngIf="showTemplateModal"
     [isVisible]="showTemplateModal"
-    (close)="showTemplateModal = false"
+    (modalClose)="showTemplateModal = false"
     (templateSelected)="onTemplateSelected($event)">
   </sn-template-modal>
 
@@ -171,7 +171,7 @@
   <sn-background-modal
     *ngIf="showBackgroundModal"
     [isVisible]="showBackgroundModal"
-    (close)="showBackgroundModal = false"
+    (modalClose)="showBackgroundModal = false"
     (backgroundSelected)="onBackgroundSelected($event)">
   </sn-background-modal>
 
@@ -179,7 +179,7 @@
   <sn-image-modal
     *ngIf="showImageModal"
     [isVisible]="showImageModal"
-    (close)="showImageModal = false"
+    (modalClose)="showImageModal = false"
     (imageSelected)="onImageSelected($event)">
   </sn-image-modal>
 
@@ -188,7 +188,7 @@
     *ngIf="showTemplateCategoryModal"
     [isVisible]="showTemplateCategoryModal"
     [currentCardName]="cardName"
-    (close)="showTemplateCategoryModal = false"
+    (modalClose)="showTemplateCategoryModal = false"
     (templateSaved)="onTemplateSaved($event)">
   </sn-template-category-modal>
 
@@ -200,7 +200,7 @@
     [currentColor]="colorPickerCurrentColor"
     [showOpacity]="true"
     (colorSelected)="onColorSelected($event)"
-    (close)="onColorPickerClose()">
+    (modalClose)="onColorPickerClose()">
   </sn-color-picker-modal>
 
   <!-- 簡化版顏色選擇器彈跳視窗（用於形狀） -->
@@ -210,7 +210,7 @@
     [title]="colorPickerTitle"
     [currentColor]="colorPickerCurrentColor"
     (colorSelected)="onColorSelected($event)"
-    (close)="onColorPickerClose()">
+    (modalClose)="onColorPickerClose()">
   </sn-simple-color-picker-modal>
 
   <!-- 形狀選擇器彈跳視窗 -->
@@ -219,7 +219,7 @@
     [isVisible]="showShapeSelectorModal"
     [currentShapeType]="currentShapeType"
     (shapeSelected)="onShapeSelected($event)"
-    (close)="onShapeSelectorClose()">
+    (modalClose)="onShapeSelectorClose()">
   </sn-shape-selector-modal>
 
   <!-- QR碼編輯器彈跳視窗 -->
@@ -228,7 +228,7 @@
     [isVisible]="showQRCodeEditorModal"
     [currentSettings]="currentQRCodeSettings"
     (settingsChanged)="onQRCodeSettingsChanged($event)"
-    (close)="onQRCodeEditorClose()">
+    (modalClose)="onQRCodeEditorClose()">
   </sn-qrcode-editor-modal>
 
   <!-- 圖片編輯器彈跳視窗 -->
@@ -237,6 +237,6 @@
     [isVisible]="showImageEditorModal"
     [currentSettings]="currentImageEditSettings"
     (settingsChanged)="onImageEditSettingsChanged($event)"
-    (close)="onImageEditorClose()">
+    (modalClose)="onImageEditorClose()">
   </sn-image-editor-modal>
 </div>

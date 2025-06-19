@@ -1,6 +1,15 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
+interface Group {
+  id: number;
+  name: string;
+  description?: string;
+  color: string;
+  cardCount?: number;
+  deviceCount?: number;
+}
+
 @Component({
   selector: 'sn-group-selection-item',
   standalone: true,
@@ -9,7 +18,10 @@ import { CommonModule } from '@angular/common';
     <div 
       class="group-selection-item"
       [class.selected]="isSelected"
-      (click)="onItemClick()">
+      (click)="onItemClick()"
+      (keydown.enter)="onItemClick()"
+      (keydown.space)="onItemClick()"
+      tabindex="0" role="button">
       <div class="group-preview">
         <div class="group-color" [style.background-color]="group.color"></div>
         <div class="group-info">
@@ -26,7 +38,11 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./group-selection-item.component.scss']
 })
 export class GroupSelectionItemComponent {
-  @Input() group: any = {};
+  @Input() group: Group = {
+    id: 0,
+    name: '',
+    color: '#e3f2fd'
+  };
   @Input() isSelected = false;
 
   @Output() itemClick = new EventEmitter<void>();

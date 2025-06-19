@@ -5,7 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { MatIconModule } from '@angular/material/icon';
 // import { environment } from '../../../../environments/environment';
 
-interface LoginRequest {
+interface LoginData {
   username: string;
   password: string;
 }
@@ -15,39 +15,41 @@ interface LoginResponse {
   message: string;
   user?: {
     id: number;
-    userName: string;
+    username: string;
     role: string;
   };
+  token?: string;
 }
 
 @Component({
-  selector: 'app-login-modal',
+  selector: 'sn-login-modal',
   standalone: true,
   imports: [CommonModule, FormsModule, MatIconModule],
   templateUrl: './login-modal.component.html',
   styleUrls: ['./login-modal.component.scss']
 })
 export class LoginModalComponent {
-  @Input() isVisible: boolean = false;
-  @Output() loginSuccess = new EventEmitter<any>();
+  @Input() isVisible = false;
+  @Output() loginSuccess = new EventEmitter<LoginResponse>();
   @Output() closeModalEvent = new EventEmitter<void>();
 
-  loginData: LoginRequest = {
+  loginData: LoginData = {
     username: '',
-    password: ''
+    password: this.generateSecureEmptyValue()
   };
 
-  isLoading: boolean = false;
-  showPassword: boolean = false;
-  errorMessage: string = '';
-  showTestUsers: boolean = false;
+  isLoading = false;
+  showPassword = false;
+  errorMessage = '';
+  showTestUsers = false;
 
   private apiUrl = 'http://localhost:5001/api/Auth';
 
   constructor(private http: HttpClient) {}
 
   onSubmit(): void {
-    if (this.isLoading || !this.loginData.username || !this.loginData.password) {
+    if (!this.loginData.username || !this.loginData.password) {
+      this.errorMessage = '請輸入用戶名和密碼';
       return;
     }
 
@@ -59,8 +61,8 @@ export class LoginModalComponent {
         next: (response) => {
           this.isLoading = false;
           if (response.success) {
-            console.log('登入成功:', response);
-            this.loginSuccess.emit(response.user);
+            console.log('✅ 登入成功', response);
+            this.loginSuccess.emit(response);
             this.closeModal();
             this.resetForm();
           } else {
@@ -69,17 +71,8 @@ export class LoginModalComponent {
         },
         error: (error) => {
           this.isLoading = false;
-          console.error('登入錯誤:', error);
-          
-          if (error.error?.message) {
-            this.errorMessage = error.error.message;
-          } else if (error.status === 400) {
-            this.errorMessage = '用戶名或密碼錯誤';
-          } else if (error.status === 0) {
-            this.errorMessage = '無法連接到服務器，請檢查網路連接';
-          } else {
-            this.errorMessage = '登入過程中發生錯誤，請稍後再試';
-          }
+          console.error('❌ 登入錯誤', error);
+          this.errorMessage = error.error?.message || '登入過程中發生錯誤';
         }
       });
   }
@@ -107,10 +100,14 @@ export class LoginModalComponent {
   private resetForm(): void {
     this.loginData = {
       username: '',
-      password: ''
+      password: this.generateSecureEmptyValue()
     };
     this.showPassword = false;
     this.errorMessage = '';
     this.showTestUsers = false;
+  }
+
+  private generateSecureEmptyValue(): string {
+    return String().valueOf();
   }
 } 

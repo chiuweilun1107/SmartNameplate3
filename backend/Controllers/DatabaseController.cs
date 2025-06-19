@@ -19,7 +19,7 @@ public class DatabaseController : ControllerBase
     [HttpGet("tables")]
     public IActionResult GetTables()
     {
-        var connStr = _config.GetConnectionString("DefaultConnection");
+        var connStr = _config.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("DefaultConnection 連接字串未設置");
         var tables = new List<string>();
         using (var conn = new NpgsqlConnection(connStr))
         {
@@ -40,7 +40,7 @@ public class DatabaseController : ControllerBase
     [HttpGet("tables/{table}/columns")]
     public IActionResult GetTableColumns(string table)
     {
-        var connStr = _config.GetConnectionString("DefaultConnection");
+        var connStr = _config.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("DefaultConnection 連接字串未設置");
         var columns = new List<object>();
         using (var conn = new NpgsqlConnection(connStr))
         {
@@ -73,7 +73,7 @@ public class DatabaseController : ControllerBase
     [HttpGet("tables/{table}/rows")]
     public IActionResult GetTableRows(string table)
     {
-        var connStr = _config.GetConnectionString("DefaultConnection");
+        var connStr = _config.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("DefaultConnection 連接字串未設置");
         var rows = new List<Dictionary<string, object>>();
         using (var conn = new NpgsqlConnection(connStr))
         {

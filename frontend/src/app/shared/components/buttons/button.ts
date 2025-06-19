@@ -1,13 +1,24 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
 
 @Component({
   selector: 'sn-button',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, MatButtonModule, MatIconModule],
   template: `
-    <button class="sn-btn" [ngClass]="type">
-      <ng-content></ng-content>
+    <button
+      mat-button
+      [color]="color"
+      [disabled]="disabled"
+      [class]="buttonClass"
+      (click)="onClick()"
+      (keydown.enter)="onClick()"
+      (keydown.space)="onClick()"
+      tabindex="0" role="button">
+      <mat-icon *ngIf="icon">{{ icon }}</mat-icon>
+      <span>{{ label }}</span>
     </button>
   `,
   styles: [`
@@ -27,26 +38,20 @@ import { CommonModule } from '@angular/common';
       transition: background 0.2s, color 0.2s, border 0.2s;
       user-select: none;
     }
-    .sn-btn.primary {
-      background: #407cff;
-      color: #fff;
-      border: none;
-    }
-    .sn-btn.primary:hover {
-      background: #225be6;
-    }
-    .sn-btn.outline {
-      background: #fff;
-      color: #407cff;
-      border: 3px solid #407cff;
-    }
-    .sn-btn.outline:hover {
-      background: #eaf1ff;
-      color: #225be6;
-      border-color: #225be6;
-    }
   `]
 })
-export class Button {
-  @Input() type: 'primary' | 'outline' = 'primary';
+export class ButtonComponent {
+  @Input() label = '';
+  @Input() icon = '';
+  @Input() color: 'primary' | 'accent' | 'warn' | '' = '';
+  @Input() disabled = false;
+  @Input() buttonClass = '';
+
+  @Output() buttonClick = new EventEmitter<void>();
+
+  onClick(): void {
+    if (!this.disabled) {
+      this.buttonClick.emit();
+    }
+  }
 } 

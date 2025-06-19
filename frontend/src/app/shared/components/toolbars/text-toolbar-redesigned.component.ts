@@ -42,7 +42,7 @@ export interface TextTag {
     <sn-element-toolbar
       [position]="position"
       [targetElement]="targetElement"
-      (close)="close.emit()">
+      (close)="toolbarClose.emit()">
 
       <!-- 格式化按鈕組 -->
       <div class="toolbar-group">
@@ -174,13 +174,24 @@ export interface TextTag {
 
     <!-- 顏色選單 -->
     <mat-menu #colorMenu="matMenu">
-      <div class="color-palette" (click)="$event.stopPropagation()">
-        <button *ngFor="let color of colorOptions"
-                class="color-option"
-                [style.background-color]="color"
-                (click)="setColor(color)"
-                [class.selected]="currentStyle.color === color">
-        </button>
+      <div class="color-palette" 
+           (click)="$event.stopPropagation()"
+           (keydown.enter)="$event.stopPropagation()"
+           (keydown.space)="$event.stopPropagation()"
+           tabindex="0" 
+           role="grid"
+           aria-label="顏色選擇區域">
+                 <button *ngFor="let color of colorOptions"
+                 class="color-option"
+                 [style.background-color]="color"
+                 (click)="selectColor(color)"
+                 (keydown.enter)="selectColor(color)"
+                 (keydown.space)="selectColor(color)"
+                 tabindex="0" 
+                 role="button"
+                 [class.selected]="currentStyle.color === color"
+                 [attr.aria-label]="'選擇顏色 ' + color">
+         </button>
       </div>
     </mat-menu>
 
@@ -310,8 +321,9 @@ export class TextToolbarRedesignedComponent implements OnInit, OnDestroy {
   @Input() currentStyle: TextStyle = { textAlign: 'left' }; // 預設為靠左對齊
   @Input() targetElement: HTMLElement | null = null;
   @Output() styleChange = new EventEmitter<TextStyle>();
-  @Output() close = new EventEmitter<void>();
+  @Output() toolbarClose = new EventEmitter<void>();
   @Output() delete = new EventEmitter<void>();
+  @Output() textSubmit = new EventEmitter<void>(); // 修正submit綁定衝突
 
   @ViewChild('alignMenu') alignMenu!: MatMenu;
   @ViewChild('colorMenu') colorMenu!: MatMenu;
@@ -348,8 +360,17 @@ export class TextToolbarRedesignedComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnDestroy() {
+  ngOnDestroy(): void {
     // 清理工作
+    document.removeEventListener('click', this.handleDocumentClick);
+  }
+
+  private handleDocumentClick = (event: Event) => {
+    // 處理文檔點擊事件
+    const target = event.target as HTMLElement;
+    if (!target.closest('.text-toolbar-redesigned')) {
+      this.toolbarClose.emit();
+    }
   }
 
   toggleBold() {
@@ -404,5 +425,9 @@ export class TextToolbarRedesignedComponent implements OnInit, OnDestroy {
   private emitStyleChange(changes: Partial<TextStyle>) {
     const newStyle = { ...this.currentStyle, ...changes };
     this.styleChange.emit(newStyle);
+  }
+
+  selectColor(color: string) {
+    this.setColor(color);
   }
 }

@@ -10,7 +10,11 @@
   [style.height.px]="getScaledSize(element.size.height)"
   [style.z-index]="element.zIndex"
   (mousedown)="onMouseDown($event)"
-  (click)="onElementClick($event)">
+  (click)="onElementActivate($event)"
+  (keydown.enter)="onElementActivate($event)"
+  (keydown.space)="onElementActivate($event)"
+  tabindex="0"
+  role="button">
   
   <!-- 元素內容 -->
   <div class="draggable-element__content" 
@@ -59,7 +63,7 @@
           [style.textAlign]="getTextElement().style.textAlign"
           [style.fontFamily]="getTextElementFontFamily()"
           style="width: 100%; border: none; background: transparent; outline: none;"
-          autofocus
+         
         />
       </ng-template>
     </div>
@@ -161,7 +165,7 @@
                  [attr.stroke-width]="(getShapeElement().style.borderWidth && getShapeElement().style.borderColor && getShapeElement().style.borderColor !== 'none' && getShapeElement().style.borderColor !== 'transparent') ? (getShapeElement().style.borderWidth || 0) : 0" />
       </svg>
       <!-- 其他形狀（保留 clip-path 實作） -->
-      <div *ngIf="getShapeElement().shapeType !== 'rectangle' && getShapeElement().shapeType !== 'circle' && getShapeElement().shapeType !== 'line' && getShapeElement().shapeType !== 'triangle' && getShapeElement().shapeType !== 'star'"
+      <div *ngIf="getShapeElement().shapeType !== 'rectangle' && getShapeElement().shapeType !== 'circle' && getShapeElement().shapeType !== 'line' && getShapeElement().shapeType !== 'triangle' && getShapeElement().shapeType !== 'star' && getShapeElement().shapeType !== 'polygon'"
            class="draggable-element__shape"
            [ngClass]="'draggable-element__shape--' + getShapeElement().shapeType"
            [style.backgroundColor]="getShapeElement().style.backgroundColor"
@@ -181,18 +185,20 @@
          [style.borderStyle]="getQRCodeElement().style.borderWidth ? 'solid' : 'none'"
          [style.borderRadius.px]="getScaledSize(getQRCodeElement().style.borderRadius || 0)">
 
-      <!-- QR碼顯示 -->
-      <qrcode
-        *ngIf="getQRCodeElement().data"
-        [qrdata]="getQRCodeElement().data"
-        [colorDark]="getQRCodeElement().style.foregroundColor || '#000'"
-        [colorLight]="getQRCodeElement().style.backgroundColor || '#fff'"
-        [width]="getScaledSize(element.size.width)"
-        [margin]="getQRCodeElement().margin || 4"
-        [errorCorrectionLevel]="getQRCodeElement().errorCorrectionLevel || 'M'">
-      </qrcode>
-      <div *ngIf="!getQRCodeElement().data" class="draggable-element__qrcode-placeholder">
-        QR
+      <!-- QR碼顯示 - 置中容器 -->
+      <div class="qrcode-center-container">
+        <qrcode
+          *ngIf="getQRCodeElement().data"
+          [qrdata]="getQRCodeElement().data"
+          [colorDark]="getQRCodeElement().style.foregroundColor || '#000'"
+          [colorLight]="getQRCodeElement().style.backgroundColor || '#fff'"
+          [width]="getQRCodeDisplaySize()"
+          [margin]="getQRCodeMargin()"
+          [errorCorrectionLevel]="getQRCodeElement().errorCorrectionLevel || 'M'">
+        </qrcode>
+        <div *ngIf="!getQRCodeElement().data" class="draggable-element__qrcode-placeholder">
+          QR
+        </div>
       </div>
     </div>
     

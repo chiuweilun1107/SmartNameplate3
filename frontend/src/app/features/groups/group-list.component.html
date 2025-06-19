@@ -7,7 +7,10 @@
   
   <div class="group-grid" *ngIf="!loading">
     <!-- 新增群組卡片 -->
-    <div class="group-item group-item--add" (click)="createGroup()">
+    <div class="group-item group-item--add" (click)="createGroup()"
+      (keydown.enter)="createGroup()"
+      (keydown.space)="createGroup()"
+      tabindex="0" role="button">
       <div class="group-add-content">
         <div class="add-icon">+</div>
         <h3>新增群組</h3>
@@ -18,7 +21,10 @@
     <div 
       *ngFor="let group of groups; trackBy: trackByGroupId"
       class="group-item"
-      (click)="onGroupClick(group)">
+      (click)="onGroupClick(group)"
+      (keydown.enter)="onGroupClick(group)"
+      (keydown.space)="onGroupClick(group)"
+      tabindex="0" role="button">
       
       <!-- 操作按鈕 -->
       <div class="group-actions">

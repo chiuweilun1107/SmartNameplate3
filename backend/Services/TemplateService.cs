@@ -113,14 +113,14 @@ public class TemplateService : ITemplateService
         if (templateDto.ThumbnailB != null)
             template.ThumbnailB = templateDto.ThumbnailB;
 
-        if (templateDto.LayoutDataA.HasValue)
-            template.LayoutDataA = templateDto.LayoutDataA.Value;
+        if (templateDto.LayoutDataA != null)
+            template.LayoutDataA = templateDto.LayoutDataA;
 
-        if (templateDto.LayoutDataB.HasValue)
-            template.LayoutDataB = templateDto.LayoutDataB.Value;
+        if (templateDto.LayoutDataB != null)
+            template.LayoutDataB = templateDto.LayoutDataB;
 
-        if (templateDto.Dimensions.HasValue)
-            template.Dimensions = templateDto.Dimensions.Value;
+        if (templateDto.Dimensions != null)
+            template.Dimensions = templateDto.Dimensions;
 
         if (templateDto.IsPublic.HasValue)
             template.IsPublic = templateDto.IsPublic.Value;

@@ -1,11 +1,22 @@
-<div class="login-modal" *ngIf="isVisible" (click)="onBackdropClick($event)">
-  <div class="login-modal__container" (click)="$event.stopPropagation()">
+<div class="login-modal" *ngIf="isVisible" 
+  (click)="onBackdropClick($event)"
+  (keydown.enter)="onBackdropClick($event)"
+  (keydown.space)="onBackdropClick($event)"
+  tabindex="0" role="button">
+  <div class="login-modal__container" 
+    (click)="$event.stopPropagation()"
+    (keydown.enter)="$event.stopPropagation()"
+    (keydown.space)="$event.stopPropagation()"
+    tabindex="0" role="button">
     <header class="login-modal__header">
       <h2 class="login-modal__title">用戶登入</h2>
       <button 
         class="login-modal__close-btn" 
         (click)="closeModal()"
-        aria-label="關閉">
+        aria-label="關閉"
+        (keydown.enter)="closeModal()"
+        (keydown.space)="closeModal()"
+        tabindex="0" role="button">
         <mat-icon>close</mat-icon>
       </button>
     </header>
@@ -22,7 +33,10 @@
           required
           autocomplete="username"
           [disabled]="isLoading"
-          placeholder="請輸入用戶名">
+          placeholder="請輸入用戶名"
+          (keydown.enter)="onSubmit()"
+          (keydown.space)="onSubmit()"
+          tabindex="0" role="button">
       </div>
 
       <div class="login-form__group">
@@ -37,12 +51,18 @@
             required
             autocomplete="current-password"
             [disabled]="isLoading"
-            placeholder="請輸入密碼">
+            placeholder="請輸入密碼"
+            (keydown.enter)="onSubmit()"
+            (keydown.space)="onSubmit()"
+            tabindex="0" role="button">
           <button
             type="button"
             class="login-form__toggle-password"
             (click)="togglePasswordVisibility()"
-            [disabled]="isLoading">
+            [disabled]="isLoading"
+            (keydown.enter)="togglePasswordVisibility()"
+            (keydown.space)="togglePasswordVisibility()"
+            tabindex="0" role="button">
             <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
           </button>
         </div>
@@ -53,13 +73,19 @@
           type="button"
           class="login-form__btn login-form__btn--secondary"
           (click)="closeModal()"
-          [disabled]="isLoading">
+          [disabled]="isLoading"
+          (keydown.enter)="closeModal()"
+          (keydown.space)="closeModal()"
+          tabindex="0" role="button">
           取消
         </button>
         <button
           type="submit"
           class="login-form__btn login-form__btn--primary"
-          [disabled]="isLoading || !loginForm.valid">
+          [disabled]="isLoading || !loginForm.valid"
+          (keydown.enter)="onSubmit()"
+          (keydown.space)="onSubmit()"
+          tabindex="0" role="button">
           <span *ngIf="!isLoading">登入</span>
           <span *ngIf="isLoading" class="login-form__loading">
             <mat-icon class="login-form__spinner">refresh</mat-icon>
@@ -78,23 +104,38 @@
     <div class="login-modal__test-users" *ngIf="showTestUsers">
       <h3>測試用戶</h3>
       <div class="test-users-grid">
-        <div class="test-user" (click)="fillTestUser('hamaadmin', 'hamaadmin*')">
+        <div class="test-user" (click)="fillTestUser('hamaadmin', 'hamaadmin*')"
+          (keydown.enter)="fillTestUser('hamaadmin', 'hamaadmin*')"
+          (keydown.space)="fillTestUser('hamaadmin', 'hamaadmin*')"
+          tabindex="0" role="button">
           <strong>超級管理員</strong><br>
           hamaadmin / hamaadmin*
         </div>
-        <div class="test-user" (click)="fillTestUser('managera', 'managera*')">
+        <div class="test-user" (click)="fillTestUser('managera', 'managera*')"
+          (keydown.enter)="fillTestUser('managera', 'managera*')"
+          (keydown.space)="fillTestUser('managera', 'managera*')"
+          tabindex="0" role="button">
           <strong>組織管理者A</strong><br>
           managera / managera*
         </div>
-        <div class="test-user" (click)="fillTestUser('managerb', 'managerb*')">
+        <div class="test-user" (click)="fillTestUser('managerb', 'managerb*')"
+          (keydown.enter)="fillTestUser('managerb', 'managerb*')"
+          (keydown.space)="fillTestUser('managerb', 'managerb*')"
+          tabindex="0" role="button">
           <strong>組織管理者B</strong><br>
           managerb / managerb*
         </div>
-        <div class="test-user" (click)="fillTestUser('usera', 'usera*')">
+        <div class="test-user" (click)="fillTestUser('usera', 'usera*')"
+          (keydown.enter)="fillTestUser('usera', 'usera*')"
+          (keydown.space)="fillTestUser('usera', 'usera*')"
+          tabindex="0" role="button">
           <strong>一般用戶A</strong><br>
           usera / usera*
         </div>
-        <div class="test-user" (click)="fillTestUser('userb', 'userb*')">
+        <div class="test-user" (click)="fillTestUser('userb', 'userb*')"
+          (keydown.enter)="fillTestUser('userb', 'userb*')"
+          (keydown.space)="fillTestUser('userb', 'userb*')"
+          tabindex="0" role="button">
           <strong>一般用戶B</strong><br>
           userb / userb*
         </div>
@@ -102,7 +143,10 @@
       <button 
         type="button" 
         class="toggle-test-users-btn"
-        (click)="showTestUsers = false">
+        (click)="showTestUsers = false"
+        (keydown.enter)="showTestUsers = false"
+        (keydown.space)="showTestUsers = false"
+        tabindex="0" role="button">
         隱藏測試用戶
       </button>
     </div>
@@ -111,7 +155,10 @@
       *ngIf="!showTestUsers"
       type="button" 
       class="toggle-test-users-btn"
-      (click)="showTestUsers = true">
+      (click)="showTestUsers = true"
+      (keydown.enter)="showTestUsers = true"
+      (keydown.space)="showTestUsers = true"
+      tabindex="0" role="button">
       顯示測試用戶
     </button>
   </div>

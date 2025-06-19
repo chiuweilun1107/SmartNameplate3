@@ -43,6 +43,19 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
+// 🛡️ CSRF 保護配置
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-XSRF-TOKEN";
+    options.Cookie.Name = "XSRF-TOKEN";
+    // 🔒 安全說明：HttpOnly = false 是必要的，因為 Angular 需要讀取 CSRF token
+    // 這是 CSRF 保護的標準做法，token 本身不包含敏感資訊
+    // 其他安全措施：SameSite=Strict + SecurePolicy 提供額外保護
+    options.Cookie.HttpOnly = false; // 必須允許 JavaScript 讀取以便 Angular 使用
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+});
+
 // Configure Entity Framework with multi-provider support
 builder.Services.ConfigureDatabase(builder.Configuration);
 
@@ -66,17 +79,31 @@ builder.Services.AddScoped<IBluetoothService, NativeBluetoothService>();
 // 🛡️ 安全服務
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<ISecurityService, SecurityService>();
+builder.Services.AddScoped<IKeyManagementService, KeyManagementService>();
 
-// 🔐 JWT 認證配置
+// 🔐 JWT 認證配置 - 使用安全的金鑰管理
 builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
+        // 🛡️ 安全地取得 JWT 密鑰 - 優先從環境變數
         var secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") 
                        ?? builder.Configuration["JwtSettings:SecretKey"];
         
         if (string.IsNullOrEmpty(secretKey))
         {
-            throw new InvalidOperationException("JWT SecretKey not configured");
+            throw new InvalidOperationException("🚨 JWT SecretKey not configured - check environment variables or configuration");
+        }
+
+        // 🛡️ 驗證金鑰強度
+        if (secretKey.Length < 32)
+        {
+            throw new InvalidOperationException("🚨 JWT SecretKey must be at least 32 characters long");
+        }
+
+        // 🚨 開發環境警告
+        if (builder.Environment.IsDevelopment() && secretKey.Contains("development_only"))
+        {
+            Console.WriteLine("🚨 WARNING: Using development JWT key - DO NOT USE IN PRODUCTION!");
         }
 
         options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
@@ -86,10 +113,12 @@ builder.Services.AddAuthentication(Microsoft.AspNetCore.Authentication.JwtBearer
                 System.Text.Encoding.UTF8.GetBytes(secretKey)),
             ValidateIssuer = true,
             ValidIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") 
-                         ?? builder.Configuration["JwtSettings:Issuer"],
+                         ?? builder.Configuration["JwtSettings:Issuer"]
+                         ?? "SmartNameplate",
             ValidateAudience = true,
             ValidAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") 
-                           ?? builder.Configuration["JwtSettings:Audience"],
+                           ?? builder.Configuration["JwtSettings:Audience"]
+                           ?? "SmartNameplateUsers",
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero,
             RequireExpirationTime = true
@@ -162,13 +191,20 @@ else
     app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+// 🚦 開發環境不強制 HTTPS 重定向，避免前端代理問題
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("AllowAngularApp");
 
 // 🔐 認證和授權
 app.UseAuthentication();
 app.UseAuthorization();
+
+// 🛡️ CSRF 保護中間件
+app.UseAntiforgery();
 
 app.MapControllers();
 

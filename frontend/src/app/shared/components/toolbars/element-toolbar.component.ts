@@ -37,7 +37,7 @@ export class ElementToolbarComponent implements OnInit, OnDestroy {
   @Input() targetElement: HTMLElement | null = null;
   @Input() keepOpenWhenTargetSelected = true; // 當目標元素被選中時保持工具列開啟
   @Input() targetSelectedClass = 'selected'; // 目標元素被選中時的 CSS 類別名稱
-  @Output() close = new EventEmitter<void>();
+  @Output() elementChange = new EventEmitter<void>();
 
   constructor(private cdr: ChangeDetectorRef) {}
 
@@ -92,7 +92,7 @@ export class ElementToolbarComponent implements OnInit, OnDestroy {
     }
 
     // 其他情況才關閉工具列
-    this.close.emit();
+    this.elementChange.emit();
   }
 
   /**

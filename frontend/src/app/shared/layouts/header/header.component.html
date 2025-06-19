@@ -2,7 +2,11 @@
   <div class="sn-header__container">
     <!-- Brand Logo -->
     <div class="sn-header__brand">
-      <a routerLink="/" class="sn-header__logo">
+      <a routerLink="/" class="sn-header__logo"
+        (click)="goHome()"
+        (keydown.enter)="goHome()"
+        (keydown.space)="goHome()"
+        tabindex="0" role="button">
         <span class="sn-header__logo-text">{{ title }}</span>
       </a>
     </div>
@@ -33,7 +37,13 @@
 
         <!-- Logged In -->
         <div *ngIf="isLoggedIn" class="sn-header__user-menu">
-          <div class="sn-header__user-info" (click)="onProfileClick()">
+          <div class="sn-header__user-info" 
+               (click)="onProfileClick()"
+               (keydown.enter)="onProfileClick()"
+               (keydown.space)="onProfileClick()"
+               tabindex="0" 
+               role="button"
+               [attr.aria-label]="'用戶選單 ' + userName">
             <div class="sn-header__avatar">
               <img *ngIf="userAvatar" [src]="userAvatar" [alt]="userName" class="sn-header__avatar-img">
               <span *ngIf="!userAvatar" class="sn-header__avatar-placeholder">{{ userName.charAt(0) }}</span>

@@ -343,6 +343,20 @@
           white-space: nowrap;
         }
       }
+
+      // 共通刪除按鈕的樣式會透過 DeleteButtonComponent 控制
+      ::ng-deep sn-delete-button {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        z-index: 10;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+
+      &:hover ::ng-deep sn-delete-button {
+        opacity: 1;
+      }
     }
   }
 }

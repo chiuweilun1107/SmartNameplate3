@@ -14,10 +14,32 @@
 ### 後端
 - **框架**: ASP.NET Core 8 + C#
 - **ORM**: Entity Framework Core 8
-- **資料庫**: PostgreSQL (支援 Neon 雲端)
+- **資料庫**: PostgreSQL / SQL Server (雙主要支援)
 - **驗證**: FluentValidation
 - **API 文檔**: Swagger/OpenAPI
-- **日誌**: Serilog
+- **日誌**: Serilog (每日滾動日誌)
+
+## 🚨 **重要架構需求**
+
+> **⚠️ 請務必閱讀 [ARCHITECTURE-REQUIREMENTS.md](./ARCHITECTURE-REQUIREMENTS.md)**
+
+### 🗄️ **雙資料庫主要支援**
+- ✅ **PostgreSQL** (主要支援)
+- ✅ **SQL Server** (主要支援)  
+- 🔄 **平等地位**: 兩種資料庫具有相同的支援優先級
+- 🔄 **動態切換**: 透過配置檔案即時切換資料庫
+
+### 🖥️ **IIS 部署準備**
+- ✅ **web.config** 完整配置
+- ✅ **Angular SPA** 路由支援
+- ✅ **安全標頭** 與請求過濾
+- ✅ **自動化部署腳本**
+
+### 📊 **每日日誌系統**
+- ✅ **應用程式日誌** (保留30天)
+- ✅ **安全事件日誌** (保留90天)
+- ✅ **Windows 事件日誌** 整合
+- ✅ **Serilog** 每日滾動配置
 
 ## 📁 專案結構
 
@@ -40,23 +62,43 @@ SmartNameplateC/
 
 ## 🚀 快速開始
 
+### 💻 **新電腦部署** 
+
+#### 🤖 **自動化部署 (推薦)**
+```bash
+# macOS/Linux
+cd backend
+chmod +x setup-new-computer.sh
+./setup-new-computer.sh
+
+# Windows PowerShell
+cd backend
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+.\setup-new-computer.ps1
+```
+
+#### 📖 **手動部署指南**
+詳細部署步驟請參考：[**backend/deploy-instructions.md**](./backend/deploy-instructions.md)
+
 ### 環境需求
 
 #### 必要環境
 - **Node.js**: 18.x 或更高版本
 - **npm**: 9.x 或更高版本  
 - **.NET SDK**: 8.x 或更高版本
-- **PostgreSQL**: 14+ 或 Neon 帳戶
+- **PostgreSQL**: 14+ 或 **SQL Server**: 2019+
 
 #### 開發工具 (推薦)
 - Visual Studio Code 或 Visual Studio 2022
 - Angular Language Service 擴充功能
 - C# Dev Kit 擴充功能
 
+### 🔄 **原電腦開發**
+
 ### 1. 克隆專案
 ```bash
-# 專案已在桌面的 SmartNameplateC 資料夾
-cd /Users/chiuyongren/Desktop/SmartNameplateC
+# 專案已在桌面的 SmartNameplate 2 資料夾
+cd "/Users/chiuyongren/Desktop/SmartNameplate 2"
 ```
 
 ### 2. 安裝前端依賴
@@ -73,35 +115,61 @@ dotnet restore
 
 ### 4. 資料庫設置
 
-#### 選項 A: 使用 Neon 雲端資料庫 (推薦)
-1. 訪問 [Neon Console](https://console.neon.tech)
-2. 創建新專案
-3. 複製連接字串到 `backend/appsettings.json`
+#### 🔍 **快速檢查資料庫**
+```bash
+cd backend
+./check-database.sh  # macOS/Linux
+```
 
-#### 選項 B: 本地 PostgreSQL
+#### 選項 A: 使用 PostgreSQL (推薦)
 1. 安裝 PostgreSQL
-2. 創建資料庫：`smart_nameplate_dev`
-3. 更新 `backend/appsettings.Development.json` 中的連接字串
+2. 創建資料庫：`smart_nameplate`
+3. 設定環境變數：
+   ```bash
+   export DATABASE_PROVIDER=PostgreSQL
+   export DATABASE_HOST=localhost
+   export DATABASE_NAME=smart_nameplate
+   export DATABASE_USERNAME=postgres
+   export DATABASE_PASSWORD=your_password
+   ```
+
+#### 選項 B: 使用 SQL Server
+1. 安裝 SQL Server
+2. 創建資料庫：`smart_nameplate`
+3. 設定環境變數：
+   ```bash
+   export DATABASE_PROVIDER=SqlServer
+   export SQL_SERVER_HOST=localhost
+   export SQL_DATABASE_NAME=smart_nameplate
+   export SQL_USERNAME=sa
+   export SQL_PASSWORD=your_password
+   ```
+
+#### 執行 Migration
+```bash
+cd backend
+dotnet ef database update
+```
 
 ### 5. 啟動服務
 
-#### 後端 API (端口 5000/5001)
+#### 後端 API (端口 5001)
 ```bash
 cd backend
-dotnet run
+dotnet run --project SmartNameplate.Api.csproj --urls http://localhost:5001
 ```
 
 #### 前端應用 (端口 4200)
 ```bash
 cd frontend
-npm start
+ng serve --proxy-config proxy.conf.json
 ```
 
 ### 6. 訪問應用
 
 - **前端應用**: http://localhost:4200
-- **API 文檔**: https://localhost:5001/api
-- **Swagger UI**: https://localhost:5001/api
+- **API 文檔**: http://localhost:5001/api
+- **Swagger UI**: http://localhost:5001/api
 
 ## 🧪 測試
 
@@ -197,10 +265,21 @@ cd backend && dotnet build
 
 ## 📚 文檔
 
+### 🚨 **核心文檔 (必讀)**
+- **[架構需求文件](./ARCHITECTURE-REQUIREMENTS.md)** - 多資料庫支援 & IIS 部署需求
+- **[ASP.NET Core 最佳實踐](./ASP.NET-Core-Best-Practices.md)** - 開發規範與程式碼範例
+- **[IIS 部署故障排除](./IIS-Deployment-Troubleshooting.md)** - 部署問題解決指南
+
+### 📖 **技術文檔**
 - [技術棧詳細說明](./TECH_STACK.md)
 - [架構設計文檔](./ARCHITECTURE.md)
 - [開發規範指南](./frontend/README.md)
 - [API 文檔](https://localhost:5001/api) (啟動後端後可存取)
+
+### 🛠️ **部署文檔**
+- [自動化部署腳本](./Build-And-Deploy-IIS.ps1)
+- [生產環境部署](./Deploy-Production.ps1)
+- [資料庫切換腳本](./backend/switch_database.sh)
 
 ## 🤝 貢獻指南
 

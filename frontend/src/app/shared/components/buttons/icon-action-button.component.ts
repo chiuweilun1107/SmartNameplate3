@@ -70,9 +70,9 @@ import { MatIconModule } from '@angular/material/icon';
   `]
 })
 export class IconActionButtonComponent {
-  @Input() icon: string = '';
+  @Input() icon = '';
   @Input() color: 'green' | 'red' | 'gray' = 'gray';
-  @Input() ariaLabel: string = '';
+  @Input() ariaLabel = '';
   @Output() clicked = new EventEmitter<MouseEvent>();
 
   onClick(event: MouseEvent) {

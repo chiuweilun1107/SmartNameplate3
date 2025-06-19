@@ -3,7 +3,8 @@ namespace SmartNameplate.Api.Data;
 public enum DatabaseProvider
 {
     PostgreSQL,
-    SqlServer
+    SqlServer,
+    Sqlite
 }
 
 public static class DatabaseProviderExtensions
@@ -14,6 +15,7 @@ public static class DatabaseProviderExtensions
         {
             DatabaseProvider.PostgreSQL => "jsonb",
             DatabaseProvider.SqlServer => "nvarchar(max)",
+            DatabaseProvider.Sqlite => "TEXT",
             _ => throw new ArgumentOutOfRangeException(nameof(provider))
         };
     }
@@ -24,6 +26,7 @@ public static class DatabaseProviderExtensions
         {
             DatabaseProvider.PostgreSQL => "text",
             DatabaseProvider.SqlServer => "nvarchar(max)",
+            DatabaseProvider.Sqlite => "TEXT",
             _ => throw new ArgumentOutOfRangeException(nameof(provider))
         };
     }
@@ -34,6 +37,7 @@ public static class DatabaseProviderExtensions
         {
             DatabaseProvider.PostgreSQL => "timestamp with time zone",
             DatabaseProvider.SqlServer => "datetime2",
+            DatabaseProvider.Sqlite => "TEXT",
             _ => throw new ArgumentOutOfRangeException(nameof(provider))
         };
     }

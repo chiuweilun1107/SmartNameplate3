@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, Output, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -14,11 +14,23 @@ import { FormsModule } from '@angular/forms';
     FormsModule
   ],
   template: `
-    <div class="modal-overlay" (click)="onOverlayClick($event)" *ngIf="isVisible">
-      <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-overlay" (click)="onOverlayClick($event)"
+      (keydown.enter)="onOverlayClick($event)"
+      (keydown.space)="onOverlayClick($event)"
+      tabindex="0" role="button" *ngIf="isVisible">
+      <div class="modal-container" 
+           (click)="$event.stopPropagation()"
+           (keydown.enter)="$event.stopPropagation()"
+           (keydown.space)="$event.stopPropagation()"
+           tabindex="0" 
+           role="dialog"
+           aria-label="簡易顏色選擇對話框">
         <div class="modal-header">
           <h2 class="modal-title">{{ title }}</h2>
-          <button mat-icon-button class="modal-close-btn" (click)="closeModal()">
+          <button mat-icon-button class="modal-close-btn" (click)="closeModal()"
+            (keydown.enter)="closeModal()"
+            (keydown.space)="closeModal()"
+            tabindex="0" role="button">
             <mat-icon>close</mat-icon>
           </button>
         </div>
@@ -28,14 +40,16 @@ import { FormsModule } from '@angular/forms';
           <div class="color-palette">
             <h3>常用顏色</h3>
             <div class="color-grid">
-              <div 
-                *ngFor="let color of presetColors"
-                class="color-option"
-                [style.backgroundColor]="color"
+              <button *ngFor="let color of presetColors" 
+                      class="color-swatch"
+                      [style.background-color]="color"
                 [class.selected]="getColorHex() === color"
                 (click)="selectColor(color)"
-                [title]="color">
-              </div>
+                (keydown.enter)="selectColor(color)"
+                (keydown.space)="selectColor(color)"
+                      tabindex="0" 
+                      [attr.aria-label]="'選擇顏色 ' + color">
+              </button>
             </div>
           </div>
 
@@ -85,10 +99,16 @@ import { FormsModule } from '@angular/forms';
         </div>
 
         <div class="modal-footer">
-          <button mat-raised-button color="primary" (click)="confirm()">
+          <button mat-raised-button color="primary" (click)="confirm()"
+            (keydown.enter)="confirm()"
+            (keydown.space)="confirm()"
+            tabindex="0" role="button">
             確認
           </button>
-          <button mat-button (click)="closeModal()">
+          <button mat-button (click)="closeModal()"
+            (keydown.enter)="closeModal()"
+            (keydown.space)="closeModal()"
+            tabindex="0" role="button">
             取消
           </button>
         </div>
@@ -97,12 +117,12 @@ import { FormsModule } from '@angular/forms';
   `,
   styleUrls: ['./simple-color-picker-modal.component.scss']
 })
-export class SimpleColorPickerModalComponent {
+export class SimpleColorPickerModalComponent implements OnInit {
   @Input() isVisible = false;
   @Input() title = '選擇顏色';
   @Input() currentColor = '#e3f2fd';
   @Output() colorSelected = new EventEmitter<string>();
-  @Output() close = new EventEmitter<void>();
+  @Output() modalClose = new EventEmitter<void>();
 
   selectedColor = '#e3f2fd';
   opacity = 100;
@@ -120,13 +140,13 @@ export class SimpleColorPickerModalComponent {
 
   private parseCurrentColor(): void {
     if (this.currentColor.includes('rgba')) {
-      // 解析 rgba 格式
-      const rgba = this.currentColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      // 🛡️ 安全的 RGBA 解析正則表達式 - 限制長度避免 ReDoS
+      const rgba = this.currentColor.match(/^rgba?\((\d{1,3}),\s*(\d{1,3}),\s*(\d{1,3})(?:,\s*([01](?:\.\d{1,3})?))?\)$/);
       if (rgba) {
-        const r = parseInt(rgba[1]);
-        const g = parseInt(rgba[2]);
-        const b = parseInt(rgba[3]);
-        this.opacity = rgba[4] ? Math.round(parseFloat(rgba[4]) * 100) : 100;
+        const r = Math.min(255, parseInt(rgba[1]));
+        const g = Math.min(255, parseInt(rgba[2]));
+        const b = Math.min(255, parseInt(rgba[3]));
+        this.opacity = rgba[4] ? Math.round(Math.min(1, parseFloat(rgba[4])) * 100) : 100;
         this.selectedColor = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
       }
     } else {
@@ -169,7 +189,7 @@ export class SimpleColorPickerModalComponent {
   }
 
   closeModal(): void {
-    this.close.emit();
+    this.modalClose.emit();
   }
 
   onOverlayClick(event: Event): void {
@@ -184,5 +204,11 @@ export class SimpleColorPickerModalComponent {
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     return `linear-gradient(to right, rgba(${r},${g},${b},0), rgba(${r},${g},${b},1))`;
+  }
+
+  // 修正不安全的正則表達式 - 使用更安全的模式
+  private isValidColor(color: string): boolean {
+    if (!color || color.length > 20) return false;
+    return /^#[0-9A-Fa-f]{3,6}$/.test(color);
   }
 } 

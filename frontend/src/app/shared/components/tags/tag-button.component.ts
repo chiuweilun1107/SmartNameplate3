@@ -25,8 +25,8 @@ export class TagButtonComponent {
   @Input() icon?: string;
   @Input() isActive = false;
   @Input() isDisabled = false;
-  @Input() value?: any;
-  @Output() tagClick = new EventEmitter<any>();
+  @Input() value?: string;
+  @Output() tagClick = new EventEmitter<string>();
 
   onClick(): void {
     if (!this.isDisabled) {

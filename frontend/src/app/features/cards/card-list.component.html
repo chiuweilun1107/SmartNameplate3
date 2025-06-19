@@ -7,7 +7,13 @@
   
   <div class="card-grid" *ngIf="!loading">
     <!-- 新增桌牌卡片 -->
-    <div class="card-item card-item--add" (click)="createCard()">
+    <div class="card-item card-item--add"
+         (click)="createCard()"
+         (keydown.enter)="createCard()"
+         (keydown.space)="createCard()"
+         tabindex="0"
+         role="button"
+         aria-label="新增圖卡">
       <div class="card-add-content">
         <div class="add-icon">+</div>
         <h3>新增圖卡</h3>

@@ -3,6 +3,10 @@
     "target": "http://localhost:5001",
     "secure": false,
     "changeOrigin": true,
-    "logLevel": "debug"
+    "logLevel": "debug",
+    "headers": {
+      "X-Forwarded-Proto": "http",
+      "X-Forwarded-For": "$remote_addr"
+    }
   }
 }

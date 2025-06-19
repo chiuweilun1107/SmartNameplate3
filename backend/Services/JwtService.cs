@@ -10,21 +10,21 @@ namespace SmartNameplate.Api.Services
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<JwtService> _logger;
-        private readonly string _secretKey;
+        private readonly IKeyManagementService _keyManagementService;
         private readonly string _issuer;
         private readonly string _audience;
         private readonly int _expireMinutes;
 
-        public JwtService(IConfiguration configuration, ILogger<JwtService> logger)
+        public JwtService(
+            IConfiguration configuration, 
+            ILogger<JwtService> logger,
+            IKeyManagementService keyManagementService)
         {
             _configuration = configuration;
             _logger = logger;
+            _keyManagementService = keyManagementService;
             
-            // 從環境變數或配置文件讀取 JWT 設定
-            _secretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") 
-                        ?? _configuration["JwtSettings:SecretKey"] 
-                        ?? throw new InvalidOperationException("JWT SecretKey not configured");
-            
+            // 🛡️ 安全地取得 JWT 設定
             _issuer = Environment.GetEnvironmentVariable("JWT_ISSUER") 
                      ?? _configuration["JwtSettings:Issuer"] 
                      ?? "SmartNameplate";
@@ -36,12 +36,6 @@ namespace SmartNameplate.Api.Services
             _expireMinutes = int.TryParse(Environment.GetEnvironmentVariable("JWT_EXPIRE_MINUTES"), out var envExpire) 
                             ? envExpire 
                             : _configuration.GetValue<int>("JwtSettings:ExpireMinutes", 60);
-
-            // 驗證密鑰強度
-            if (_secretKey.Length < 32)
-            {
-                throw new InvalidOperationException("JWT SecretKey must be at least 32 characters long");
-            }
         }
 
         public string GenerateToken(User user)
@@ -49,7 +43,8 @@ namespace SmartNameplate.Api.Services
             try
             {
                 var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.UTF8.GetBytes(_secretKey);
+                var secretKey = _keyManagementService.GetJwtSecretKey();
+                var key = Encoding.UTF8.GetBytes(secretKey);
 
                 var claims = new List<Claim>
                 {
@@ -93,7 +88,8 @@ namespace SmartNameplate.Api.Services
             try
             {
                 var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.UTF8.GetBytes(_secretKey);
+                var secretKey = _keyManagementService.GetJwtSecretKey();
+                var key = Encoding.UTF8.GetBytes(secretKey);
 
                 var validationParameters = new TokenValidationParameters
                 {

@@ -67,10 +67,10 @@ public class CardService : ICardService
         if (cardDto.ThumbnailB != null)
             card.ThumbnailB = cardDto.ThumbnailB;
         
-        if (cardDto.ContentA.HasValue)
+        if (cardDto.ContentA != null)
             card.ContentA = cardDto.ContentA;
             
-        if (cardDto.ContentB.HasValue)
+        if (cardDto.ContentB != null)
             card.ContentB = cardDto.ContentB;
 
         if (cardDto.IsSameBothSides.HasValue)

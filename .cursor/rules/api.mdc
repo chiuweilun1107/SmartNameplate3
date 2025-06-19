@@ -4,6 +4,8 @@ globs:
 alwaysApply: true
 ---
 - 回覆時給予機器人符號
+- 不要使用any 類型
+- 不要使用powershell，直接使用bash
 - 優先查找context7 mcp工具搜尋問題的解決方案
 - 發現liter error要馬上修正
 - 使用angular/SASS/ts架構，利用BEM寫法，HTML專注架構、文字內容都寫在TS、Scss負責樣式

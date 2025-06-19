@@ -1,0 +1,27 @@
+//-----
+// <copyright file="DeleteBackgroundImageResponse.cs" company="Hamastar">
+//     Copyright (c) Hamastar. All rights reserved.
+// </copyright>
+// <author> SmartNameplate Development Team </author>
+//-----
+
+using Newtonsoft.Json;
+
+namespace Hamastar.SmartNameplate.Dto.Backend.BackgroundImages.Response
+{
+    /// <summary>
+    /// 刪除背景圖片回應
+    /// </summary>
+    public class DeleteBackgroundImageResponse
+    {
+        #region Properties
+
+        /// <summary>
+        /// 是否成功
+        /// </summary>
+        [JsonProperty("result")]
+        public bool Result { get; set; }
+
+        #endregion Properties
+    }
+} 

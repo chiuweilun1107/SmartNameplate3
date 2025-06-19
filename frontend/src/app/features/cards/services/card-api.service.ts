@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { CanvasData } from '../models/card-design.models';
 
 export interface Card {
   id: number;
@@ -9,8 +10,8 @@ export interface Card {
   status: number; // 0=Draft, 1=Active, 2=Inactive
   thumbnailA?: string;
   thumbnailB?: string;
-  contentA?: any;
-  contentB?: any;
+  contentA?: CanvasData;
+  contentB?: CanvasData;
   isSameBothSides: boolean;
   createdAt: string;
   updatedAt: string;
@@ -22,8 +23,8 @@ export interface CreateCardDto {
   status?: number;
   thumbnailA?: string;
   thumbnailB?: string;
-  contentA?: any;
-  contentB?: any;
+  contentA?: CanvasData;
+  contentB?: CanvasData;
   isSameBothSides?: boolean;
 }
 
@@ -60,13 +61,18 @@ export class CardApiService {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 
-  // 狀態文字轉換
+  // 🛡️ 安全的狀態文字轉換 - 防止 Object Injection
   getStatusText(status: number): string {
-    const statusMap: { [key: number]: string } = {
-      0: '草稿',
-      1: '已啟用',
-      2: '未啟用'
-    };
-    return statusMap[status] || '未知';
+    if (typeof status !== 'number' || !Number.isInteger(status)) {
+      return '未知';
+    }
+    
+    const statusMap = new Map([
+      [0, '草稿'],
+      [1, '已啟用'], 
+      [2, '未啟用']
+    ]);
+    
+    return statusMap.get(status) || '未知';
   }
 }

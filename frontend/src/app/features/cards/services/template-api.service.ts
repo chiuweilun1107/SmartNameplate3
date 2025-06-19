@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { CanvasData } from '../models/card-design.models';
 
 export interface Template {
   id: number;
@@ -9,9 +10,9 @@ export interface Template {
   thumbnailUrl?: string;
   thumbnailA?: string;   // A面縮圖
   thumbnailB?: string;   // B面縮圖
-  layoutDataA: any;
-  layoutDataB: any;
-  dimensions: any;
+  layoutDataA: CanvasData;
+  layoutDataB: CanvasData;
+  dimensions: { width: number; height: number };
   organizationId?: number;
   createdBy?: number;
   isPublic: boolean;
@@ -27,9 +28,9 @@ export interface CreateTemplateDto {
   thumbnailUrl?: string;
   thumbnailA?: string;   // A面縮圖
   thumbnailB?: string;   // B面縮圖
-  layoutDataA: any;
-  layoutDataB: any;
-  dimensions: any;
+  layoutDataA: CanvasData;
+  layoutDataB: CanvasData;
+  dimensions: { width: number; height: number };
   isPublic?: boolean;
   category?: string;
 }
@@ -42,7 +43,7 @@ export interface TemplateListItem {
   thumbnailA?: string;   // A面縮圖
   thumbnailB?: string;   // B面縮圖
   category: string;
-  isPublic: boolean;
+  isPublic?: boolean;
   createdAt: string;
 }
 
@@ -56,7 +57,7 @@ export class TemplateApiService {
 
   // 獲取所有公開樣板
   getTemplates(category?: string): Observable<TemplateListItem[]> {
-    let params: any = {};
+    const params: { category?: string } = {};
     if (category) {
       params.category = category;
     }

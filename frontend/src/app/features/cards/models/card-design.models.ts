@@ -28,6 +28,7 @@ export interface TextElement {
     borderWidth?: number;
     borderColor?: string;
     padding?: number;
+    tag?: string;
   };
   zIndex: number;
 }
@@ -117,5 +118,5 @@ export interface CollaborationAction {
   type: 'element_add' | 'element_update' | 'element_delete' | 'element_move' | 'cursor_move';
   userId: string;
   timestamp: Date;
-  data: any;
+  data: Position | CanvasElement | string | Record<string, unknown>;
 }

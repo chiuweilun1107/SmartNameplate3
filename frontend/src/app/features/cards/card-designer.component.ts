@@ -13,7 +13,7 @@ import { Subject, takeUntil } from 'rxjs';
 
 // 服務和模型
 import { CardDesignerService } from './services/card-designer.service';
-import { CardDesign, CanvasElement, Position, CanvasData } from './models/card-design.models';
+import { CardDesign, CanvasElement, CanvasData } from './models/card-design.models';
 import { ToolbarPositioningService } from '../../shared/services/toolbar-positioning.service';
 import { ThumbnailGeneratorService } from '../../shared/services/thumbnail-generator.service';
 
@@ -298,6 +298,10 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
           this.closeToolbarSignal++; // 關閉工具列
           this.designerService.clearSelection();
           
+          // 清除選中狀態並關閉所有工具列
+          this.selectedElementId = null;
+          this.closeAllToolbars();
+          
           // 如果處於裁剪模式，結束裁剪
           if (this.croppingElementId) {
             this.endCropMode();
@@ -315,8 +319,8 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // 用於ngFor的跟蹤函數
-  trackByElementId(index: number, element: any): string {
-    return element.id;
+  trackByElementId(index: number, element: CanvasElement): string {
+    return element?.id || `element-${index}`;
   }
 
   // 元素操作方法
@@ -357,28 +361,28 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
     }
   }
 
-  onElementMoved(data: { id: string, position: any }): void {
+  onElementMoved(data: { id: string, position: { x: number, y: number } }): void {
     this.designerService.moveElement(data.id, data.position);
     if (this.selectedElementId === data.id) {
       this.updateToolbarPositionById(data.id);
     }
   }
 
-  onElementResized(data: { id: string, size: any }): void {
+  onElementResized(data: { id: string, size: { width: number, height: number } }): void {
     this.designerService.resizeElement(data.id, data.size);
     if (this.selectedElementId === data.id) {
       this.updateToolbarPositionById(data.id);
     }
   }
 
-  onElementUpdated(data: { id: string, updates: any }): void {
+  onElementUpdated(data: { id: string, updates: Partial<CanvasElement> }): void {
     console.log('元素更新:', data);
     this.designerService.updateElement(data.id, data.updates);
     this.updateCanvasElements();
   }
 
   // 處理裁剪數據變更
-  async onCropChanged(data: { id: string, cropData: any }): Promise<void> {
+  async onCropChanged(data: { id: string, cropData: { x: number, y: number, width: number, height: number, apply?: boolean } }): Promise<void> {
     console.log('裁剪數據變更:', data);
     // 若是套用裁剪
     if (data.cropData && data.cropData.apply) {
@@ -429,7 +433,7 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
             this.updateCanvasElements();
           }
         };
-        img.src = (element as any).src;
+        img.src = (element as { src: string }).src;
       }
       // 結束裁剪模式
       this.endCropMode();
@@ -451,7 +455,7 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
       return;
     }
 
-    const updates: any = {
+    const updates: Partial<CanvasElement> = {
       style: {
         ...selectedElement.style,
         ...newStyle
@@ -495,8 +499,8 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // 新增的統一元素添加方法
-  onAddElement(data: { type: string, options?: any }): void {
-    let element: any;
+  onAddElement(data: { type: string, options?: { shapeType?: string } }): void {
+    let element: CanvasElement;
 
     switch (data.type) {
       case 'text':
@@ -507,7 +511,7 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
         break;
       case 'shape':
         element = this.designerService.createShapeElement(
-          data.options?.shapeType || 'rectangle'
+          (data.options?.shapeType as 'rectangle' | 'circle' | 'line' | 'triangle' | 'star' | 'polygon') || 'rectangle'
         );
         break;
       case 'qrcode':
@@ -525,7 +529,7 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
 
   onAddTemplate(templateId: string): void {
     // 根據模板ID套用預設內容
-    let template: any;
+    let template: { name: string; A: CanvasData; B: CanvasData };
     if (templateId === 'namecard') {
       template = {
         name: '姓名牌',
@@ -733,7 +737,7 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
   /**
    * 取得當前選中文字元素的樣式
    */
-  getCurrentTextStyle(): any {
+  getCurrentTextStyle(): TextStyle {
     const selectedElement = this.getSelectedCanvasElement();
     if (!selectedElement || selectedElement.type !== 'text') {
       return {};
@@ -929,7 +933,7 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // 處理元素工具列動作
-  onElementAction(action: string | { type: string; value: any }): void {
+  onElementAction(action: string | { type: string; value: number }): void {
     console.log('元素動作:', action);
     const selectedId = this.selectedImageElementId || this.selectedShapeElementId || this.selectedQRCodeElementId || this.selectedTextElementId;
 
@@ -937,10 +941,11 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (typeof action === 'object' && action.type === 'lineThickness') {
       if (this.selectedShapeElementId) {
         const element = this.canvasElements.find(e => e.id === this.selectedShapeElementId);
-        if (element && element.type === 'shape' && (element as any).shapeType === 'line') {
+        if (element && element.type === 'shape' && (element as { shapeType?: string }).shapeType === 'line') {
           // 以 style.height 控制線條粗細
-          const currentStyle = (element as any).style || {};
-          let newStyle = { ...currentStyle, height: action.value };
+          const currentStyle = (element as { style?: Record<string, unknown> }).style || {};
+          const newStyle = { ...currentStyle };
+          newStyle['height'] = Number(action.value);
           this.designerService.updateElement(this.selectedShapeElementId, { style: newStyle, size: { ...element.size, height: action.value } });
           this.updateCanvasElements();
           console.log('線條粗細已更新:', action.value);
@@ -988,7 +993,7 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
         this.startCropMode();
         break;
       case 'filter':
-        this.openImageEditor('filter');
+        this.openImageEditor();
         break;
       // 形狀特定動作
       case 'changeShape':
@@ -1016,13 +1021,13 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // 開啟形狀選擇器
-  openShapeSelector(isAdd: boolean = false): void {
+  openShapeSelector(isAdd = false): void {
     if (isAdd) {
       this.selectedShapeElementId = null; // 強制清空，確保只新增
     } else if (this.selectedShapeElementId) {
       const element = this.canvasElements.find(e => e.id === this.selectedShapeElementId);
       if (element && element.type === 'shape') {
-        this.currentShapeType = (element as any).shapeType || 'rectangle';
+        this.currentShapeType = (element as { shapeType?: string }).shapeType ?? 'rectangle';
       }
     }
     this.showShapeSelectorModal = true;
@@ -1050,7 +1055,7 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.selectedShapeElementId) {
       const element = this.canvasElements.find(e => e.id === this.selectedShapeElementId);
       if (element && element.type === 'shape') {
-        this.colorPickerCurrentColor = (element as any).style?.backgroundColor || '#e3f2fd';
+        this.colorPickerCurrentColor = (element as { style?: { backgroundColor?: string } }).style?.backgroundColor ?? '#e3f2fd';
       }
     }
     this.colorPickerTitle = '選擇填充顏色';
@@ -1063,7 +1068,7 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.selectedShapeElementId) {
       const element = this.canvasElements.find(e => e.id === this.selectedShapeElementId);
       if (element && element.type === 'shape') {
-        this.colorPickerCurrentColor = (element as any).style?.borderColor || '#2196f3';
+        this.colorPickerCurrentColor = (element as { style?: { borderColor?: string } }).style?.borderColor ?? '#2196f3';
       }
     }
     this.colorPickerTitle = '選擇邊框顏色';
@@ -1076,13 +1081,13 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.selectedShapeElementId) {
       const element = this.canvasElements.find(e => e.id === this.selectedShapeElementId);
       if (element && element.type === 'shape') {
-        const currentStyle = (element as any).style || {};
-        let newStyle = { ...currentStyle };
+        const currentStyle = (element as { style?: Record<string, unknown> }).style || {};
+        const newStyle = { ...currentStyle };
 
         if (this.colorPickerAction === 'fillColor') {
-          newStyle.backgroundColor = color;
+          newStyle['backgroundColor'] = color;
         } else if (this.colorPickerAction === 'borderColor') {
-          newStyle.borderColor = color;
+          newStyle['borderColor'] = color;
         }
 
         this.designerService.updateElement(this.selectedShapeElementId, { style: newStyle });
@@ -1098,16 +1103,17 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.selectedQRCodeElementId) {
       const element = this.canvasElements.find(e => e.id === this.selectedQRCodeElementId);
       if (element && element.type === 'qrcode') {
+        const qr = element as { style?: Record<string, unknown>; data?: string; errorCorrectionLevel?: string; margin?: number };
         this.currentQRCodeSettings = {
-          data: (element as any).data || '@https://example.com',
+          data: (qr.data ?? '@https://example.com') as string,
           size: element.size?.width || 100,
-          backgroundColor: (element as any).style?.backgroundColor || '#ffffff',
-          foregroundColor: (element as any).style?.foregroundColor || '#000000',
-          errorCorrectionLevel: (element as any).errorCorrectionLevel || 'M',
-          margin: (element as any).margin || 4,
-          borderColor: (element as any).style?.borderColor || '#000000',
-          borderWidth: (element as any).style?.borderWidth || 0,
-          borderRadius: (element as any).style?.borderRadius || 0
+          backgroundColor: (qr.style?.['backgroundColor'] as string) ?? '#ffffff',
+          foregroundColor: (qr.style?.['foregroundColor'] as string) ?? '#000000',
+          errorCorrectionLevel: (qr.errorCorrectionLevel as 'M' | 'L' | 'Q' | 'H') ?? 'M',
+          margin: (qr.margin as number) ?? 4,
+          borderColor: (qr.style?.['borderColor'] as string) ?? '#000000',
+          borderWidth: (qr.style?.['borderWidth'] as number) ?? 0,
+          borderRadius: (qr.style?.['borderRadius'] as number) ?? 0
         };
       }
     }
@@ -1131,6 +1137,15 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
         margin: settings.margin
       };
 
+      // 添加調試信息
+      console.log('🔍 QR碼更新調試:', {
+        elementId: this.selectedQRCodeElementId,
+        settings: settings,
+        updates: updates,
+        marginInSettings: settings.margin,
+        marginInUpdates: updates.margin
+      });
+
       this.designerService.updateElement(this.selectedQRCodeElementId, updates);
       this.updateCanvasElements();
       console.log('QR碼設定已更新:', settings);
@@ -1144,7 +1159,7 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
       // 添加時間戳來強制重新生成QR碼
       const element = this.canvasElements.find(e => e.id === this.selectedQRCodeElementId);
       if (element && element.type === 'qrcode') {
-        const currentData = (element as any).data || '@https://example.com';
+        const currentData = (element as { data?: string }).data || '@https://example.com';
         const timestamp = Date.now();
         
         // 暫時改變數據來觸發重新渲染
@@ -1183,13 +1198,13 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   // 開啟圖片編輯器
-  openImageEditor(action: string): void {
+  openImageEditor(): void {
     if (this.selectedImageElementId) {
       const element = this.canvasElements.find(e => e.id === this.selectedImageElementId);
       if (element && element.type === 'image') {
         this.currentImageEditSettings = {
-          src: (element as any).src,
-          filter: (element as any).style?.filter
+          src: (element as { src: string }).src,
+          filter: (element as { style?: Record<string, unknown> }).style?.['filter'] as string
         };
         this.showImageEditorModal = true;
       }
@@ -1201,9 +1216,9 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.selectedImageElementId) {
       const element = this.canvasElements.find(e => e.id === this.selectedImageElementId);
       if (element && element.type === 'image') {
-        const updates: any = {
+        const updates: { style: Record<string, unknown> } = {
           style: {
-            ...(element as any).style,
+            ...(element as { style?: Record<string, unknown> }).style,
             filter: settings.filter || undefined
           }
         };
@@ -1275,13 +1290,13 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
   // 新增：取得目前選中 shape 的 shapeType
   getSelectedShapeType(): string {
     const el = this.getSelectedCanvasElement();
-    return el && el.type === 'shape' ? (el as any).shapeType : '';
+    return el && el.type === 'shape' ? (el as { shapeType?: string }).shapeType ?? '' : '';
   }
 
   // 新增：取得目前選中 shape 的 style
-  getSelectedShapeStyle(): any {
+  getSelectedShapeStyle(): Record<string, unknown> {
     const el = this.getSelectedCanvasElement();
-    return el && el.type === 'shape' ? (el as any).style : {};
+    return el && el.type === 'shape' ? (el as { style?: Record<string, unknown> }).style ?? {} : {};
   }
 
   // 改良版儲存桌牌（包含縮圖生成）
@@ -1310,7 +1325,11 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
       this.designerService.saveDesign(thumbnailA, thumbnailB).subscribe({
         next: (response) => {
           console.log('💾 桌牌和縮圖儲存成功:', response);
-          alert('桌牌已儲存成功！\n✅ 包含A面和B面縮圖');
+          
+          // 🎯 自動下載高解析度A面和B面圖片（透過後端API）
+          this.downloadHighResolutionImages(response.id);
+          
+          alert('桌牌已儲存成功！\n✅ 包含A面和B面縮圖\n📥 A面和B面圖片已自動下載');
           
           // 如果是新建的卡片，更新URL以反映新的ID
           if (response.id && this.currentDesign?.id.startsWith('new_')) {
@@ -1354,6 +1373,113 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
           }
         });
       }
+    }
+  }
+
+  // 🎯 透過後端API下載高解析度圖片（無損轉換）
+  private downloadHighResolutionImages(cardId: number): void {
+    try {
+      console.log('📥 開始透過後端API下載高解析度圖片...');
+      
+      // 使用 fetch API 正確處理二進制檔案下載
+      const downloadUrl = `/api/bluetooth/cards/${cardId}/download-images`;
+      
+      fetch(downloadUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        // 從回應標頭獲取檔案名稱
+        const contentDisposition = response.headers.get('content-disposition');
+        let filename = `${this.cardName}_高解析度圖片.zip`;
+        
+        if (contentDisposition) {
+          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1].replace(/['"]/g, '');
+          }
+        }
+        
+        // 將回應轉換為 Blob
+        return response.blob().then(blob => ({ blob, filename }));
+      })
+      .then(({ blob, filename }) => {
+        // 創建下載連結
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.style.display = 'none';
+        
+        // 觸發下載
+        document.body.appendChild(link);
+        link.click();
+        
+        // 清理
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+        
+        console.log('✅ 高解析度圖片下載成功:', filename);
+      })
+      .catch(error => {
+        console.error('❌ 透過後端API下載圖片失敗:', error);
+        alert('下載高解析度圖片時發生錯誤，請稍後再試');
+      });
+      
+    } catch (error) {
+      console.error('❌ 下載圖片初始化失敗:', error);
+      alert('下載高解析度圖片時發生錯誤，請稍後再試');
+    }
+  }
+
+  // 🎯 自動下載A面和B面圖片（前端方式，備用）
+  private downloadBothSideImages(thumbnailA: string, thumbnailB: string): void {
+    try {
+      console.log('📥 開始自動下載A面和B面圖片...');
+      
+      // 生成檔案名稱（使用桌牌名稱）
+      const sanitizedCardName = this.cardName.replace(/[^a-zA-Z0-9\u4e00-\u9fff]/g, '_');
+      const timestamp = new Date().toISOString().split('T')[0]; // YYYY-MM-DD格式
+      
+      // 下載A面圖片
+      this.downloadImage(thumbnailA, `${sanitizedCardName}_A面_${timestamp}.png`);
+      
+      // 延遲一點下載B面，避免瀏覽器阻擋多重下載
+      setTimeout(() => {
+        this.downloadImage(thumbnailB, `${sanitizedCardName}_B面_${timestamp}.png`);
+      }, 500);
+      
+      console.log('✅ A面和B面圖片下載指令已發送');
+      
+    } catch (error) {
+      console.error('❌ 自動下載圖片失敗:', error);
+      // 不顯示錯誤提示，避免干擾用戶體驗
+    }
+  }
+
+  // 🎯 下載單張圖片的輔助方法
+  private downloadImage(dataUrl: string, filename: string): void {
+    try {
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = filename;
+      link.style.display = 'none';
+      
+      // 添加到DOM，觸發下載，然後移除
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      console.log(`📥 已觸發下載: ${filename}`);
+      
+    } catch (error) {
+      console.error(`❌ 下載 ${filename} 失敗:`, error);
     }
   }
 
@@ -1527,35 +1653,41 @@ export class CardDesignerComponent implements OnInit, OnDestroy, AfterViewInit {
     return this.canvasElements.some(element => element.type === 'text');
   }
 
-  getTextElementsWithTags(): any[] {
+  getTextElementsWithTags(): CanvasElement[] {
     return this.canvasElements.filter(element => element.type === 'text');
   }
 
   getTagIcon(tagId: string): string {
-    const tagIcons: { [key: string]: string } = {
-      'name': 'person',
-      'title': 'work',
-      'phone': 'phone',
-      'address': 'location_on',
-      'company': 'business',
-      'custom': 'edit'
-    };
-    return tagIcons[tagId] || 'label';
+    if (!tagId || typeof tagId !== 'string') return 'label';
+    
+    const tagIcons = new Map([
+      ['name', 'person'],
+      ['title', 'work'], 
+      ['phone', 'phone'],
+      ['address', 'location_on'],
+      ['company', 'business'],
+      ['custom', 'edit']
+    ]);
+    
+    return tagIcons.get(tagId) || 'label';
   }
 
   getTagLabel(tagId: string): string {
-    const tagLabels: { [key: string]: string } = {
-      'name': '姓名',
-      'title': '職稱',
-      'phone': '電話',
-      'address': '地址',
-      'company': '公司',
-      'custom': '自訂'
-    };
-    return tagLabels[tagId] || '標籤';
+    if (!tagId || typeof tagId !== 'string') return '標籤';
+    
+    const tagLabels = new Map([
+      ['name', '姓名'],
+      ['title', '職稱'],
+      ['phone', '電話'],
+      ['address', '地址'],
+      ['company', '公司'],
+      ['custom', '自訂']
+    ]);
+    
+    return tagLabels.get(tagId) || '標籤';
   }
 
-  getElementDisplayName(element: any): string {
+  getElementDisplayName(element: CanvasElement): string {
     if (element.type === 'text') {
       return element.content ? `文字: ${element.content.substring(0, 10)}...` : '空白文字';
     }

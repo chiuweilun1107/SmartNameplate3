@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using SmartNameplate.Api.Entities;
-using System.Text.Json;
 
 namespace SmartNameplate.Api.DTOs;
 
@@ -19,9 +18,9 @@ public class CreateCardDto
     
     public string? ThumbnailB { get; set; }
 
-    public JsonElement? ContentA { get; set; }
+    public string? ContentA { get; set; }
 
-    public JsonElement? ContentB { get; set; }
+    public string? ContentB { get; set; }
 
     public bool IsSameBothSides { get; set; } = false;
 }
@@ -40,9 +39,9 @@ public class UpdateCardDto
     
     public string? ThumbnailB { get; set; }
 
-    public JsonElement? ContentA { get; set; }
+    public string? ContentA { get; set; }
 
-    public JsonElement? ContentB { get; set; }
+    public string? ContentB { get; set; }
 
     public bool? IsSameBothSides { get; set; }
 }
@@ -55,8 +54,8 @@ public class CardResponseDto
     public CardStatus Status { get; set; }
     public string? ThumbnailA { get; set; }
     public string? ThumbnailB { get; set; }
-    public JsonElement? ContentA { get; set; }
-    public JsonElement? ContentB { get; set; }
+    public string? ContentA { get; set; }
+    public string? ContentB { get; set; }
     public bool IsSameBothSides { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

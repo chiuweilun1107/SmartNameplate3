@@ -24,11 +24,11 @@
                 <p class="home__hero-description">{{ slide.description }}</p>
                 
                 <div class="home__hero-actions">
-                  <button class="home__cta-primary" [routerLink]="slide.primaryButton?.link || '/'">
-                    {{ slide.primaryButton?.text || '了解更多' }}
+                  <button class="home__cta-primary" [routerLink]="slide.primaryButton.link || '/'">
+                    {{ slide.primaryButton.text || '了解更多' }}
                   </button>
-                  <button class="home__cta-secondary" [routerLink]="slide.secondaryButton?.link || '/'">
-                    {{ slide.secondaryButton?.text || '查看示範' }}
+                  <button class="home__cta-secondary" [routerLink]="slide.secondaryButton.link || '/'">
+                    {{ slide.secondaryButton.text || '查看示範' }}
                   </button>
                 </div>
               </div>
@@ -95,8 +95,8 @@
         <sn-home-feature-card
           icon="assets/icons/groups.svg"
           [iconClass]="'home__feature-icon--groups'"
-          title="群組部署"
-          desc="管理桌牌群組與設備部署<br>藍牙連接與遠程更新"
+          title="群組設置"
+          desc="集中管理桌牌群組<br>靈活分配與組織設備"
           link="/groups"
           linkText="部署桌圖"
           class="groups-hover">
@@ -107,7 +107,7 @@
           icon="assets/icons/deploy.svg"
           [iconClass]="'home__feature-icon--deploy'"
           title="桌圖部署"
-          desc="管理桌牌群組與設備部署<br>藍牙連接與遠程更新"
+          desc="藍牙連接設備<br>一鍵部署圖卡"
           link="/deploy"
           linkText="部署桌圖"
           class="deploy-hover">

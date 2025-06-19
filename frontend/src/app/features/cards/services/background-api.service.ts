@@ -35,7 +35,7 @@ export class BackgroundApiService {
 
   // 獲取所有公開背景圖片
   getBackgroundImages(category?: string): Observable<BackgroundImage[]> {
-    let params: any = {};
+    const params: { category?: string } = {};
     if (category) {
       params.category = category;
     }

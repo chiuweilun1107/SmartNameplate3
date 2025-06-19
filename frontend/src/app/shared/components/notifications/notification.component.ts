@@ -20,7 +20,7 @@ export const NOTIFICATION_TEXT = {
 };
 
 @Component({
-  selector: 'app-notification',
+  selector: 'sn-notification',
   standalone: true,
   imports: [CommonModule],
   templateUrl: './notification.component.html',

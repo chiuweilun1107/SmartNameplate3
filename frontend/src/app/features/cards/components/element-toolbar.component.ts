@@ -1,4 +1,4 @@
-import { Component, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -75,8 +75,8 @@ export const ELEMENT_TOOLBAR_TEXT = {
   templateUrl: './element-toolbar.component.html',
   styleUrls: ['./element-toolbar.component.scss']
 })
-export class ElementToolbarComponent implements OnInit {
-  @Output() addElement = new EventEmitter<{ type: string, options?: any }>();
+export class ElementToolbarComponent {
+  @Output() addElement = new EventEmitter<{ type: string, options?: { shapeType?: string } }>();
   @Output() addTemplate = new EventEmitter<string>();
   @Output() alignElements = new EventEmitter<string>();
   @Output() layerAction = new EventEmitter<string>();
@@ -87,11 +87,6 @@ export class ElementToolbarComponent implements OnInit {
 
   // 文字常數
   text = ELEMENT_TOOLBAR_TEXT;
-
-  constructor() { }
-
-  ngOnInit(): void {
-  }
 
   // 添加基本元素
   addTextElement() {

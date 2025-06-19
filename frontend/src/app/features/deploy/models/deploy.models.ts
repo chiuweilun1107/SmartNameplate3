@@ -28,8 +28,8 @@ export interface Card {
   thumbnail?: string;
   thumbnailA?: string;
   thumbnailB?: string;
-  contentA?: any;
-  contentB?: any;
+  contentA?: Record<string, unknown>;
+  contentB?: Record<string, unknown>;
   isSameBothSides: boolean;
   createdAt: string;
   updatedAt: string;

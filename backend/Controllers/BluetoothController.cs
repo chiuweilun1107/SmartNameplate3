@@ -288,21 +288,68 @@ public class BluetoothController : ControllerBase
     }
 
     // POST: api/bluetooth/devices/{id}/cast
+    // 進度回報事件
+    private static readonly Dictionary<string, IProgress<string>> _progressReporters = new();
+    
+    [HttpGet("devices/{id}/cast-progress")]
+    public async Task<IActionResult> GetCastProgress(int id)
+    {
+        var progressId = $"cast_{id}_{DateTime.Now.Ticks}";
+        
+        Response.Headers["Content-Type"] = "text/event-stream";
+        Response.Headers["Cache-Control"] = "no-cache";
+        Response.Headers["Connection"] = "keep-alive";
+        Response.Headers["Access-Control-Allow-Origin"] = "*";
+        
+        var progress = new Progress<string>(message =>
+        {
+            var data = $"data: {message}\n\n";
+            Response.Body.WriteAsync(System.Text.Encoding.UTF8.GetBytes(data));
+            Response.Body.FlushAsync();
+        });
+        
+        _progressReporters[progressId] = progress;
+        
+        // 保持連接開啟
+        await Task.Delay(TimeSpan.FromMinutes(5)); // 5分鐘超時
+        
+        _progressReporters.Remove(progressId);
+        return Ok();
+    }
+
     [HttpPost("devices/{id}/cast")]
     public async Task<IActionResult> CastImageToDevice(int id, DeployCardDto deployCardDto)
     {
         try
         {
+            _logger.LogInformation("🎯 收到投圖請求 - 設備ID: {DeviceId}, 卡片ID: {CardId}, 面: {Side}", id, deployCardDto.CardId, deployCardDto.Side);
+
             var device = await _context.Devices.FindAsync(id);
             if (device == null)
             {
-                return NotFound("Device not found");
+                _logger.LogError("❌ 找不到設備 ID: {DeviceId}", id);
+                return NotFound($"Device with ID {id} not found");
             }
 
-            var card = await _context.Cards.FindAsync(deployCardDto.CardId);
+            // 如果 deployCardDto.CardId 為 0 或無效，使用設備當前卡片
+            var cardIdToUse = deployCardDto.CardId;
+            if (cardIdToUse <= 0 && device.CurrentCardId.HasValue)
+            {
+                cardIdToUse = device.CurrentCardId.Value;
+                _logger.LogInformation("🔄 使用設備當前卡片 ID: {CardId}", cardIdToUse);
+            }
+
+            if (cardIdToUse <= 0)
+            {
+                _logger.LogError("❌ 設備未部署任何卡片且未指定有效的卡片ID");
+                return BadRequest("Device has no deployed card and no valid card ID specified");
+            }
+
+            var card = await _context.Cards.FindAsync(cardIdToUse);
             if (card == null)
             {
-                return NotFound("Card not found");
+                _logger.LogError("❌ 找不到卡片 ID: {CardId}", cardIdToUse);
+                return NotFound($"Card with ID {cardIdToUse} not found");
             }
 
             // 修正：AB面相同時也使用雙面傳輸避免條紋問題
@@ -325,22 +372,9 @@ public class BluetoothController : ControllerBase
             }
             else
             {
-                // 如果真實設備連接失敗，嘗試模擬模式
-                _logger.LogWarning("真實設備連接失敗，嘗試模擬模式投圖...");
-                var simulationResult = await CastImageToPH6Device_DualSideFixed(null, card);
-                
-                if (simulationResult.IsSuccess)
-                {
-                    return Ok(new { 
-                        message = $"Image processed successfully (Simulation mode)",
-                        warning = "Device not found, used simulation mode",
-                        deviceAddress = addressToUse
-                    });
-                }
-                else
-                {
-                    return BadRequest(new { message = $"Failed to cast image: {castResult.ErrorMessage}" });
-                }
+                // 真實設備連接失敗，直接返回錯誤（移除模擬模式）
+                _logger.LogError("真實設備投圖失敗: {Error}", castResult.ErrorMessage);
+                return BadRequest(new { message = $"Failed to cast image to real device: {castResult.ErrorMessage}" });
             }
         }
         catch (Exception ex)
@@ -355,23 +389,24 @@ public class BluetoothController : ControllerBase
         try
         {
             var currentDir = Directory.GetCurrentDirectory(); // backend目錄
-            var projectRoot = Path.GetDirectoryName(currentDir) ?? currentDir; // 上一層目錄
+            var projectRoot = Path.GetDirectoryName(currentDir) ?? currentDir; // 專案根目錄
 
-            _logger.LogInformation("🔄 開始雙面順序傳輸流程，AB面相同: {IsSameBothSides}, 設備地址: {DeviceAddress}", card.IsSameBothSides, deviceAddress ?? "模擬模式");
+            _logger.LogInformation("🔄 開始雙面順序傳輸流程，AB面相同: {IsSameBothSides}, 設備地址: {DeviceAddress}", card.IsSameBothSides, deviceAddress);
 
-            // 如果沒有設備地址，使用模擬模式（只渲染圖片但不實際傳輸）
+            // 檢查設備地址是否有效
             if (string.IsNullOrEmpty(deviceAddress))
             {
-                _logger.LogInformation("🎭 模擬模式：只渲染圖片不進行藍牙傳輸");
-                return (true, "模擬模式：圖片渲染成功");
+                _logger.LogError("❌ 設備地址不能為空，無法進行真實投圖");
+                return (false, "設備地址不能為空，投圖需要真實的藍牙設備");
             }
 
-            // 先渲染圖片
+            // 🎨 使用前端生成的縮圖進行投圖，確保與預覽完全一致
+            _logger.LogInformation("🎨 使用前端縮圖進行投圖，確保與預覽一致");
             var renderResult = await RenderCardImages(card);
             if (!renderResult.IsSuccess)
             {
-                _logger.LogError("卡片渲染失敗: {Error}", renderResult.ErrorMessage);
-                return (false, $"卡片渲染失敗: {renderResult.ErrorMessage}");
+                _logger.LogError("卡片縮圖轉換失敗: {Error}", renderResult.ErrorMessage);
+                return (false, $"卡片縮圖轉換失敗: {renderResult.ErrorMessage}");
             }
 
             // 核心邏輯：無論AB是否相同，都按順序傳輸 A面(side=1) → B面(side=2)
@@ -397,9 +432,14 @@ public class BluetoothController : ControllerBase
                 return (false, $"A面傳輸失敗: {sideAResult.ErrorMessage}");
             }
 
-            // === 步驟2：等待3秒設備處理時間 ===
-            _logger.LogInformation("⏳ 等待3秒設備處理時間...");
-            await Task.Delay(3000);
+            // === 步驟2：等待設備處理時間並清理A面資源 ===
+            _logger.LogInformation("⏳ 等待5秒設備處理時間並清理A面資源...");
+            await Task.Delay(5000);
+            
+            // 強制垃圾回收，清理記憶體中的圖片資料
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            _logger.LogInformation("🧹 已清理記憶體中的A面圖片資料");
 
             // === 步驟3：傳輸B面 (side=2) ===
             string imagePathB;
@@ -422,6 +462,10 @@ public class BluetoothController : ControllerBase
             }
 
             _logger.LogInformation("✅ 雙面順序傳輸完成！A面 → B面 全部成功 - 條紋問題已解決");
+            
+            // 🧹 自動清理臨時檔案
+            await CleanupTempFiles(projectRoot, card);
+            
             return (true, "雙面順序傳輸成功：A面 → B面 - 條紋問題已修正");
         }
         catch (Exception ex)
@@ -431,19 +475,133 @@ public class BluetoothController : ControllerBase
         }
     }
 
+    private async Task CleanupTempFiles(string projectRoot, Card card)
+    {
+        try
+        {
+            _logger.LogInformation("🧹 開始清理卡片 {CardId} 的臨時檔案", card.Id);
+            
+            var tempFiles = new List<string>();
+            
+            if (card.IsSameBothSides)
+            {
+                // AB相同模式：只有一個臨時檔案
+                tempFiles.Add(Path.Combine(projectRoot, $"card_{card.Id}_temp.png"));
+            }
+            else
+            {
+                // AB不同模式：有A面和B面兩個臨時檔案
+                tempFiles.Add(Path.Combine(projectRoot, $"card_{card.Id}_A_temp.png"));
+                tempFiles.Add(Path.Combine(projectRoot, $"card_{card.Id}_B_temp.png"));
+            }
+            
+            foreach (var tempFile in tempFiles)
+            {
+                if (System.IO.File.Exists(tempFile))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(tempFile);
+                        _logger.LogInformation("🗑️ 已刪除臨時檔案: {TempFile}", tempFile);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("⚠️ 無法刪除臨時檔案 {TempFile}: {Error}", tempFile, ex.Message);
+                    }
+                }
+                else
+                {
+                    _logger.LogDebug("📝 臨時檔案不存在，跳過: {TempFile}", tempFile);
+                }
+            }
+            
+            _logger.LogInformation("✅ 臨時檔案清理完成");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ 清理臨時檔案時發生錯誤");
+        }
+    }
+
+    private async Task CleanupRenderTempFiles(string projectRoot, Card card)
+    {
+        try
+        {
+            _logger.LogInformation("🧹 開始清理卡片 {CardId} 的渲染臨時檔案", card.Id);
+            
+            var tempFiles = new List<string>();
+            
+            if (card.IsSameBothSides)
+            {
+                // AB相同模式：只有一個臨時檔案
+                tempFiles.Add(Path.Combine(projectRoot, $"card_{card.Id}_temp.png"));
+            }
+            else
+            {
+                // AB不同模式：有A面和B面兩個臨時檔案
+                tempFiles.Add(Path.Combine(projectRoot, $"card_{card.Id}_A_temp.png"));
+                tempFiles.Add(Path.Combine(projectRoot, $"card_{card.Id}_B_temp.png"));
+            }
+            
+            foreach (var tempFile in tempFiles)
+            {
+                if (System.IO.File.Exists(tempFile))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(tempFile);
+                        _logger.LogInformation("🗑️ 已刪除渲染臨時檔案: {TempFile}", tempFile);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning("⚠️ 無法刪除渲染臨時檔案 {TempFile}: {Error}", tempFile, ex.Message);
+                    }
+                }
+                else
+                {
+                    _logger.LogDebug("📝 渲染臨時檔案不存在，跳過: {TempFile}", tempFile);
+                }
+            }
+            
+            _logger.LogInformation("✅ 渲染臨時檔案清理完成");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ 清理渲染臨時檔案時發生錯誤");
+        }
+    }
+
     private async Task<(bool IsSuccess, string ErrorMessage)> CastSingleSide(string projectRoot, string imagePath, int side, string deviceAddress)
     {
         try
         {
             _logger.LogInformation("🔧 傳輸單面：圖片={ImagePath}, 面={Side}, 設備={DeviceAddress}", imagePath, side, deviceAddress);
 
-            // 使用我們的修復版本腳本
-            string processArgs = $"-c \"cd {projectRoot} && source .venv/bin/activate && python cast_image_to_ph6_fixed.py {imagePath} {side} {deviceAddress}\"";
+            // 🔧 驗證圖片檔案是否存在
+            var fullImagePath = Path.Combine(projectRoot, imagePath);
+            if (!System.IO.File.Exists(fullImagePath))
+            {
+                _logger.LogError("❌ 圖片檔案不存在: {FullImagePath}", fullImagePath);
+                return (false, $"圖片檔案不存在: {fullImagePath}");
+            }
+
+            var fileInfo = new FileInfo(fullImagePath);
+            _logger.LogInformation("📁 圖片檔案驗證成功，檔案大小: {FileSize} bytes", fileInfo.Length);
+
+            // 🔧 等待檔案系統穩定
+            await Task.Delay(300);
+
+            // 使用已存在的 projectRoot 變數
+            var scriptPath = Path.Combine(projectRoot, "backend", "Pythons", "cast_image_to_ph6_fixed.py");
+
+            _logger.LogInformation("🔍 投圖腳本路徑: {ScriptPath}", scriptPath);
+            _logger.LogInformation("🔍 當前工作目錄: {CurrentDir}", projectRoot);
+            _logger.LogInformation("🔍 專案根目錄: {ProjectRoot}", projectRoot);
 
             var processStartInfo = new ProcessStartInfo
             {
-                FileName = "/bin/bash",
-                Arguments = processArgs,
+                FileName = "python3",
+                Arguments = $"\"{scriptPath}\" {imagePath} {side} {deviceAddress}",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -462,7 +620,28 @@ public class BluetoothController : ControllerBase
                 if (!string.IsNullOrEmpty(e.Data))
                 {
                     outputBuilder.AppendLine(e.Data);
-                    _logger.LogInformation("📤 面{Side}傳輸輸出: {Output}", side, e.Data);
+                    
+                    // 解析進度資訊
+                    if (e.Data.StartsWith("PROGRESS|"))
+                    {
+                        var parts = e.Data.Split('|');
+                        if (parts.Length >= 4)
+                        {
+                            var blockInfo = parts[1];
+                            var packageInfo = parts[2];
+                            var progressPercent = parts[3];
+                            
+                            var progressMessage = $"面{side}: {blockInfo} - {packageInfo} ({progressPercent})";
+                            _logger.LogInformation("📊 面{Side}進度: {Progress}", side, progressMessage);
+                            
+                            // 這裡可以通過SignalR或其他方式推送進度給前端
+                            // 暫時先記錄日誌
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogInformation("📤 面{Side}傳輸輸出: {Output}", side, e.Data);
+                    }
                 }
             };
             
@@ -552,7 +731,23 @@ public class BluetoothController : ControllerBase
                 return (false, $"{sideName} 縮圖資料為空");
             }
 
-            _logger.LogInformation("🔄 轉換 {SideName} 縮圖為PNG檔案: {OutputPath}", sideName, outputPath);
+            _logger.LogInformation("🔄 直接轉換 {SideName} 縮圖為PNG檔案: {OutputPath}", sideName, outputPath);
+
+            // 🔧 如果檔案已存在，先刪除避免衝突
+            if (System.IO.File.Exists(outputPath))
+            {
+                try
+                {
+                    System.IO.File.Delete(outputPath);
+                    _logger.LogInformation("🗑️ 已刪除舊的 {SideName} 檔案: {OutputPath}", sideName, outputPath);
+                    // 等待檔案系統完成刪除操作
+                    await Task.Delay(200);
+                }
+                catch (Exception deleteEx)
+                {
+                    _logger.LogWarning("⚠️ 無法刪除舊的 {SideName} 檔案: {Error}", sideName, deleteEx.Message);
+                }
+            }
 
             // 移除 data:image/png;base64, 前綴
             var base64Data = thumbnailBase64;
@@ -565,42 +760,33 @@ public class BluetoothController : ControllerBase
                 base64Data = base64Data.Substring("data:image/jpeg;base64,".Length);
             }
 
-            // 將 base64 轉換為 byte array
+            // 將 base64 轉換為 byte array 並直接寫入檔案
             var imageData = Convert.FromBase64String(base64Data);
             
-            // 先寫入原始檔案
-            var tempPath = outputPath.Replace(".png", "_temp.png");
-            await System.IO.File.WriteAllBytesAsync(tempPath, imageData);
+            // 🔧 確保目錄存在
+            var directory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
+            {
+                Directory.CreateDirectory(directory);
+                _logger.LogInformation("📁 已建立目錄: {Directory}", directory);
+            }
+            
+            await System.IO.File.WriteAllBytesAsync(outputPath, imageData);
+            
+            // 🔧 等待檔案系統同步
+            await Task.Delay(100);
             
             // 驗證檔案是否成功創建
-            if (!System.IO.File.Exists(tempPath))
+            if (!System.IO.File.Exists(outputPath))
             {
-                _logger.LogError("❌ 暫存檔案創建失敗: {TempPath}", tempPath);
-                return (false, $"暫存檔案創建失敗: {tempPath}");
+                _logger.LogError("❌ PNG檔案創建失敗: {OutputPath}", outputPath);
+                return (false, $"PNG檔案創建失敗: {outputPath}");
             }
 
-            var tempFileInfo = new FileInfo(tempPath);
-            _logger.LogInformation("✅ {SideName} 縮圖暫存檔案創建成功，檔案大小: {FileSize} bytes", sideName, tempFileInfo.Length);
+            var fileInfo = new FileInfo(outputPath);
+            _logger.LogInformation("✅ {SideName} PNG檔案創建成功，檔案大小: {FileSize} bytes", sideName, fileInfo.Length);
             
-            // 執行六色轉換
-            _logger.LogInformation("🎨 開始執行六色轉換: {SideName}", sideName);
-            var sixColorResult = await ConvertImageToSixColors(tempPath, outputPath, sideName);
-            
-            // 清理暫存檔案
-            try
-            {
-                if (System.IO.File.Exists(tempPath))
-                {
-                    System.IO.File.Delete(tempPath);
-                    _logger.LogInformation("🧹 已清理暫存檔案: {TempPath}", tempPath);
-                }
-            }
-            catch (Exception cleanupEx)
-            {
-                _logger.LogWarning(cleanupEx, "清理暫存檔案失敗: {TempPath}", tempPath);
-            }
-            
-            return sixColorResult;
+            return (true, $"{sideName} 縮圖轉換成功");
         }
         catch (FormatException ex)
         {
@@ -614,27 +800,70 @@ public class BluetoothController : ControllerBase
         }
     }
 
-    private async Task<(bool IsSuccess, string ErrorMessage)> ConvertImageToSixColors(string inputPath, string outputPath, string sideName)
+
+
+    private async Task<(bool IsSuccess, string ErrorMessage)> RenderCardImagesWithScript(Card card, string projectRoot)
     {
         try
         {
-            var currentDir = Directory.GetCurrentDirectory();
-            var projectRoot = Path.GetDirectoryName(currentDir) ?? currentDir;
-            var pythonScriptPath = Path.Combine(projectRoot, "convert_six_colors.py");
-            
-            _logger.LogInformation("🎨 使用六色轉換腳本: {ScriptPath}", pythonScriptPath);
-            
-            // 檢查腳本是否存在
-            if (!System.IO.File.Exists(pythonScriptPath))
+            _logger.LogInformation("🎨 使用 render_card_image.py 渲染高品質圖片，卡片ID: {CardId}", card.Id);
+
+            if (card.IsSameBothSides)
             {
-                _logger.LogError("❌ 六色轉換腳本不存在: {ScriptPath}", pythonScriptPath);
-                return (false, $"六色轉換腳本不存在: {pythonScriptPath}");
+                // AB面相同：只渲染一張圖片（使用A面）
+                var imagePath = Path.Combine(projectRoot, $"card_{card.Id}_temp.png");
+                var result = await RenderSingleSideWithScript(card.Id, imagePath, projectRoot, "A面（AB相同模式）", "A");
+                
+                // 🧹 渲染完成後自動清理臨時檔案
+                if (result.IsSuccess)
+                {
+                    await CleanupRenderTempFiles(projectRoot, card);
+                }
+                
+                return result;
             }
+            else
+            {
+                // AB面不同：分別渲染A面和B面
+                var imagePathA = Path.Combine(projectRoot, $"card_{card.Id}_A_temp.png");
+                var imagePathB = Path.Combine(projectRoot, $"card_{card.Id}_B_temp.png");
+                
+                // 渲染A面
+                var resultA = await RenderSingleSideWithScript(card.Id, imagePathA, projectRoot, "A面", "A");
+                if (!resultA.IsSuccess)
+                {
+                    return resultA;
+                }
+                
+                // 渲染B面
+                var resultB = await RenderSingleSideWithScript(card.Id, imagePathB, projectRoot, "B面", "B");
+                
+                // 🧹 渲染完成後自動清理臨時檔案
+                if (resultB.IsSuccess)
+                {
+                    await CleanupRenderTempFiles(projectRoot, card);
+                }
+                
+                return resultB;
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "使用 render_card_image.py 渲染圖片時發生錯誤");
+            return (false, ex.Message);
+        }
+    }
+
+    private async Task<(bool IsSuccess, string ErrorMessage)> RenderSingleSideWithScript(int cardId, string outputPath, string projectRoot, string sideName, string side = "")
+    {
+        try
+        {
+            _logger.LogInformation("🎨 渲染 {SideName} 到: {OutputPath}", sideName, outputPath);
 
             var processStartInfo = new ProcessStartInfo
             {
-                FileName = "/bin/bash",
-                Arguments = $"-c \"cd {projectRoot} && source .venv/bin/activate && python convert_six_colors.py {inputPath} {outputPath}\"",
+                FileName = "python3",
+                Arguments = $"{Path.Combine(AppContext.BaseDirectory, "Pythons", "render_card_image.py")} {cardId} \"{outputPath}\" {side}",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -653,7 +882,7 @@ public class BluetoothController : ControllerBase
                 if (!string.IsNullOrEmpty(e.Data))
                 {
                     outputBuilder.AppendLine(e.Data);
-                    _logger.LogInformation("🎨 六色轉換輸出: {Output}", e.Data);
+                    _logger.LogInformation("🎨 {SideName} 渲染輸出: {Output}", sideName, e.Data);
                 }
             };
             
@@ -662,7 +891,7 @@ public class BluetoothController : ControllerBase
                 if (!string.IsNullOrEmpty(e.Data))
                 {
                     errorBuilder.AppendLine(e.Data);
-                    _logger.LogError("❌ 六色轉換錯誤: {Error}", e.Data);
+                    _logger.LogError("❌ {SideName} 渲染錯誤: {Error}", sideName, e.Data);
                 }
             };
 
@@ -680,25 +909,25 @@ public class BluetoothController : ControllerBase
                 // 驗證輸出檔案是否成功創建
                 if (!System.IO.File.Exists(outputPath))
                 {
-                    _logger.LogError("❌ 六色轉換輸出檔案不存在: {OutputPath}", outputPath);
-                    return (false, $"六色轉換輸出檔案不存在: {outputPath}");
+                    _logger.LogError("❌ {SideName} 渲染輸出檔案不存在: {OutputPath}", sideName, outputPath);
+                    return (false, $"{sideName} 渲染輸出檔案不存在: {outputPath}");
                 }
 
                 var fileInfo = new FileInfo(outputPath);
-                _logger.LogInformation("✅ {SideName} 六色轉換成功，檔案大小: {FileSize} bytes", sideName, fileInfo.Length);
+                _logger.LogInformation("✅ {SideName} 渲染成功，檔案大小: {FileSize} bytes", sideName, fileInfo.Length);
                 
-                return (true, $"{sideName} 六色轉換成功");
+                return (true, $"{sideName} 渲染成功");
             }
             else
             {
-                _logger.LogError("❌ 六色轉換執行失敗，退出代碼: {ExitCode}, 錯誤: {Error}", process.ExitCode, error);
-                return (false, $"六色轉換執行失敗: {error}");
+                _logger.LogError("❌ {SideName} 渲染執行失敗，退出代碼: {ExitCode}, 錯誤: {Error}", sideName, process.ExitCode, error);
+                return (false, $"{sideName} 渲染執行失敗: {error}");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "❌ 調用六色轉換腳本時發生錯誤");
-            return (false, $"調用六色轉換腳本時發生錯誤: {ex.Message}");
+            _logger.LogError(ex, "❌ 調用 render_card_image.py 渲染 {SideName} 時發生錯誤", sideName);
+            return (false, $"調用 render_card_image.py 渲染 {sideName} 時發生錯誤: {ex.Message}");
         }
     }
 
@@ -710,7 +939,7 @@ public class BluetoothController : ControllerBase
             var projectRoot = Path.GetDirectoryName(currentDir) ?? currentDir; // 上一層目錄
 
             // 使用新的直接渲染投圖腳本 - 統一數據處理流程
-            var pythonScriptPath = Path.Combine(projectRoot, "cast_render_direct.py");
+            var pythonScriptPath = Path.Combine(AppContext.BaseDirectory, "Pythons", "cast_render_direct.py");
             _logger.LogInformation("🔧 使用直接渲染投圖腳本: {ScriptPath}, 卡片ID: {CardId}", pythonScriptPath, card.Id);
             
             // 檢查新腳本是否存在，否則使用舊的分離式流程
@@ -723,7 +952,7 @@ public class BluetoothController : ControllerBase
             var processStartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"-c \"cd {projectRoot} && source .venv/bin/activate && python cast_render_direct.py {card.Id} {side} {deviceAddress}\"",
+                Arguments = $"-c \"cd {projectRoot} && source .venv/bin/activate && python {pythonScriptPath} {card.Id} {side} {deviceAddress}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -806,7 +1035,7 @@ public class BluetoothController : ControllerBase
             }
 
             // 使用修復版本的Python腳本 - 包含ACK處理和傳輸延遲修復
-            var pythonScriptPath = Path.Combine(projectRoot, "cast_image_to_ph6_fixed.py");
+            var pythonScriptPath = Path.Combine(AppContext.BaseDirectory, "Pythons", "cast_image_to_ph6_fixed.py");
             _logger.LogInformation("🔧 使用修復版本腳本: {ScriptPath}, 圖片路徑: {ImagePath}", pythonScriptPath, imagePath);
             
             // 檢查修復版本腳本是否存在，否則使用原版本
@@ -819,7 +1048,7 @@ public class BluetoothController : ControllerBase
             var processStartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"-c \"cd {projectRoot} && source .venv/bin/activate && python {Path.GetFileName(pythonScriptPath)} {imagePath} {side} {deviceAddress}\"",
+                Arguments = $"-c \"cd {projectRoot} && source .venv/bin/activate && python {pythonScriptPath} {imagePath} {side} {deviceAddress}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -908,7 +1137,7 @@ public class BluetoothController : ControllerBase
             var processStartInfo = new ProcessStartInfo
             {
                 FileName = "/bin/bash",
-                Arguments = $"-c \"cd {projectRoot} && source .venv/bin/activate && python render_card_image.py {cardId} {outputPath}{sideArg}\"",
+                Arguments = $"-c \"cd {projectRoot} && source .venv/bin/activate && python {pythonScriptPath} {cardId} {outputPath}{sideArg}\"",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -967,6 +1196,114 @@ public class BluetoothController : ControllerBase
         }
     }
 
+    // 🔍 GET: api/bluetooth/devices/{id}/connection-status
+    [HttpGet("devices/{id}/connection-status")]
+    public async Task<IActionResult> CheckDeviceConnectionStatus(int id)
+    {
+        try
+        {
+            var device = await _context.Devices.FindAsync(id);
+            if (device == null)
+            {
+                return NotFound(new { message = "設備不存在" });
+            }
+
+            _logger.LogInformation("檢查設備 {DeviceId} ({Address}) 的連接狀態", id, device.BluetoothAddress);
+
+            // 使用藍牙服務檢查連接狀態
+            var isConnected = await _bluetoothService.CheckDeviceConnectionAsync(device.BluetoothAddress);
+            var isReachable = await _bluetoothService.IsDeviceReachableAsync(device.BluetoothAddress);
+
+            // 更新資料庫中的設備狀態
+            var newStatus = isConnected ? DeviceStatus.Connected : DeviceStatus.Disconnected;
+            if (device.Status != newStatus)
+            {
+                device.Status = newStatus;
+                device.UpdatedAt = DateTime.UtcNow;
+                if (isConnected)
+                {
+                    device.LastConnected = DateTime.UtcNow;
+                }
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("設備 {DeviceId} 狀態已更新為: {Status}", id, newStatus);
+            }
+
+            return Ok(new
+            {
+                deviceId = id,
+                name = device.Name,
+                bluetoothAddress = device.BluetoothAddress,
+                isConnected = isConnected,
+                isReachable = isReachable,
+                status = newStatus.ToString(),
+                lastConnected = device.LastConnected,
+                checkedAt = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "檢查設備連接狀態時發生錯誤: {DeviceId}", id);
+            return StatusCode(500, new { message = "檢查設備連接狀態時發生錯誤", error = ex.Message });
+        }
+    }
+
+    // 🔍 GET: api/bluetooth/devices/connection-status
+    [HttpGet("devices/connection-status")]
+    public async Task<IActionResult> CheckAllDevicesConnectionStatus()
+    {
+        try
+        {
+            _logger.LogInformation("檢查所有設備的連接狀態");
+
+            var devices = await _context.Devices.ToListAsync();
+            var connectedAddresses = await _bluetoothService.GetConnectedDeviceAddressesAsync();
+            
+            var deviceStatuses = new List<object>();
+
+            foreach (var device in devices)
+            {
+                var isConnected = connectedAddresses.Contains(device.BluetoothAddress);
+                var newStatus = isConnected ? DeviceStatus.Connected : DeviceStatus.Disconnected;
+
+                // 更新設備狀態
+                if (device.Status != newStatus)
+                {
+                    device.Status = newStatus;
+                    device.UpdatedAt = DateTime.UtcNow;
+                    if (isConnected)
+                    {
+                        device.LastConnected = DateTime.UtcNow;
+                    }
+                }
+
+                deviceStatuses.Add(new
+                {
+                    deviceId = device.Id,
+                    name = device.Name,
+                    bluetoothAddress = device.BluetoothAddress,
+                    isConnected = isConnected,
+                    status = newStatus.ToString(),
+                    lastConnected = device.LastConnected
+                });
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                totalDevices = devices.Count,
+                connectedCount = deviceStatuses.Count(d => ((dynamic)d).isConnected),
+                devices = deviceStatuses,
+                checkedAt = DateTime.UtcNow
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "檢查所有設備連接狀態時發生錯誤");
+            return StatusCode(500, new { message = "檢查所有設備連接狀態時發生錯誤", error = ex.Message });
+        }
+    }
+
     // DELETE: api/bluetooth/devices/{id}
     [HttpDelete("devices/{id}")]
     public async Task<IActionResult> RemoveDevice(int id)
@@ -988,6 +1325,194 @@ public class BluetoothController : ControllerBase
         {
             _logger.LogError(ex, "Error removing device {Id}", id);
             return StatusCode(500, "An error occurred while removing the device");
+        }
+    }
+
+    /// <summary>
+    /// 🎯 下載卡片的高解析度圖片（A面和B面）
+    /// </summary>
+    [HttpPost("cards/{cardId}/download-images")]
+    public async Task<IActionResult> DownloadCardImages(int cardId)
+    {
+        try
+        {
+            _logger.LogInformation("📥 開始下載卡片 {CardId} 的高解析度圖片", cardId);
+
+            // 查詢卡片資料
+            var card = await _context.Cards.FindAsync(cardId);
+            if (card == null)
+            {
+                return NotFound(new { message = "卡片不存在" });
+            }
+
+            if (string.IsNullOrEmpty(card.ThumbnailA) && string.IsNullOrEmpty(card.ThumbnailB))
+            {
+                return BadRequest(new { message = "卡片沒有縮圖資料" });
+            }
+
+            var projectRoot = Directory.GetCurrentDirectory();
+            var tempDir = Path.Combine(projectRoot, "temp_downloads");
+            Directory.CreateDirectory(tempDir);
+
+            var downloadedFiles = new List<string>();
+            var errors = new List<string>();
+
+            // 生成檔案名稱
+            var sanitizedCardName = card.Name ?? $"Card_{cardId}";
+            foreach (var invalidChar in Path.GetInvalidFileNameChars())
+            {
+                sanitizedCardName = sanitizedCardName.Replace(invalidChar, '_');
+            }
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HH-mm-ss");
+
+            // 下載A面圖片
+            if (!string.IsNullOrEmpty(card.ThumbnailA))
+            {
+                var fileNameA = $"{sanitizedCardName}_A面_{timestamp}.png";
+                var filePathA = Path.Combine(tempDir, fileNameA);
+                
+                var resultA = await ConvertBase64ToPngFile(card.ThumbnailA, filePathA, "A面");
+                if (resultA.IsSuccess)
+                {
+                    downloadedFiles.Add(filePathA);
+                    _logger.LogInformation("✅ A面圖片已生成: {FilePath}", filePathA);
+                }
+                else
+                {
+                    errors.Add($"A面: {resultA.ErrorMessage}");
+                }
+            }
+
+            // 下載B面圖片
+            if (!string.IsNullOrEmpty(card.ThumbnailB))
+            {
+                var fileNameB = $"{sanitizedCardName}_B面_{timestamp}.png";
+                var filePathB = Path.Combine(tempDir, fileNameB);
+                
+                var resultB = await ConvertBase64ToPngFile(card.ThumbnailB, filePathB, "B面");
+                if (resultB.IsSuccess)
+                {
+                    downloadedFiles.Add(filePathB);
+                    _logger.LogInformation("✅ B面圖片已生成: {FilePath}", filePathB);
+                }
+                else
+                {
+                    errors.Add($"B面: {resultB.ErrorMessage}");
+                }
+            }
+
+            if (downloadedFiles.Count == 0)
+            {
+                return StatusCode(500, new { 
+                    message = "圖片生成失敗", 
+                    errors = errors 
+                });
+            }
+
+            // 如果只有一個檔案，直接返回
+            if (downloadedFiles.Count == 1)
+            {
+                var filePath = downloadedFiles[0];
+                var fileName = Path.GetFileName(filePath);
+                var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                
+                // 清理暫存檔案
+                System.IO.File.Delete(filePath);
+                
+                return File(fileBytes, "image/png", fileName);
+            }
+
+            // 如果有多個檔案，打包成ZIP
+            var zipFileName = $"{sanitizedCardName}_{timestamp}.zip";
+            var zipFilePath = Path.Combine(tempDir, zipFileName);
+            
+            using (var zip = new System.IO.Compression.ZipArchive(
+                System.IO.File.Create(zipFilePath), 
+                System.IO.Compression.ZipArchiveMode.Create))
+            {
+                foreach (var filePath in downloadedFiles)
+                {
+                    var fileName = Path.GetFileName(filePath);
+                    var entry = zip.CreateEntry(fileName);
+                    
+                    using var entryStream = entry.Open();
+                    using var fileStream = System.IO.File.OpenRead(filePath);
+                    await fileStream.CopyToAsync(entryStream);
+                }
+            }
+
+            var zipBytes = await System.IO.File.ReadAllBytesAsync(zipFilePath);
+            
+            // 清理所有暫存檔案
+            foreach (var filePath in downloadedFiles)
+            {
+                if (System.IO.File.Exists(filePath))
+                    System.IO.File.Delete(filePath);
+            }
+            if (System.IO.File.Exists(zipFilePath))
+                System.IO.File.Delete(zipFilePath);
+
+            _logger.LogInformation("✅ 卡片 {CardId} 的圖片已打包下載", cardId);
+            
+            return File(zipBytes, "application/zip", zipFileName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ 下載卡片圖片時發生錯誤");
+            return StatusCode(500, new { message = "下載圖片時發生錯誤", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// 🎯 將 base64 轉換為 PNG 檔案（無損轉換）
+    /// </summary>
+    private async Task<(bool IsSuccess, string ErrorMessage)> ConvertBase64ToPngFile(string base64Data, string outputPath, string sideName)
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(base64Data))
+            {
+                return (false, $"{sideName} 縮圖資料為空");
+            }
+
+            _logger.LogInformation("🔄 轉換 {SideName} base64 為高解析度PNG: {OutputPath}", sideName, outputPath);
+
+            // 移除 data:image/png;base64, 前綴
+            var cleanBase64 = base64Data;
+            if (cleanBase64.StartsWith("data:image/png;base64,"))
+            {
+                cleanBase64 = cleanBase64.Substring("data:image/png;base64,".Length);
+            }
+            else if (cleanBase64.StartsWith("data:image/jpeg;base64,"))
+            {
+                cleanBase64 = cleanBase64.Substring("data:image/jpeg;base64,".Length);
+            }
+
+            // 🎯 直接將 base64 轉換為 byte array 並寫入檔案
+            // 這是完全無損的轉換，保持原始解析度
+            var imageData = Convert.FromBase64String(cleanBase64);
+            await System.IO.File.WriteAllBytesAsync(outputPath, imageData);
+
+            // 驗證檔案是否成功創建
+            if (!System.IO.File.Exists(outputPath))
+            {
+                return (false, $"檔案創建失敗: {outputPath}");
+            }
+
+            var fileInfo = new FileInfo(outputPath);
+            _logger.LogInformation("✅ {SideName} 高解析度PNG已生成，檔案大小: {FileSize} bytes", sideName, fileInfo.Length);
+            
+            return (true, $"{sideName} 轉換成功");
+        }
+        catch (FormatException ex)
+        {
+            _logger.LogError(ex, "❌ Base64 格式錯誤 - {SideName}", sideName);
+            return (false, $"{sideName} Base64 格式錯誤");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "❌ 轉換 {SideName} 時發生錯誤", sideName);
+            return (false, $"轉換 {sideName} 時發生錯誤: {ex.Message}");
         }
     }
 } 

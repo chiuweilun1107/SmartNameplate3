@@ -8,13 +8,14 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { TagButtonComponent } from '../../shared/components/tags/tag-button.component';
 import { CardItemComponent, CardItem } from '../../shared/components/cards/card-item.component';
-import { CardApiService, Card as ApiCard } from '../cards/services/card-api.service';
-import { TemplateApiService, TemplateListItem } from '../cards/services/template-api.service';
+import { CardApiService } from '../cards/services/card-api.service';
+import { TemplateApiService } from '../cards/services/template-api.service';
 import { forkJoin } from 'rxjs';
 
 export interface GroupFormData {
   name: string;
   description: string;
+  color: string;
 }
 
 interface GroupMember {
@@ -35,7 +36,7 @@ interface Card {
 }
 
   @Component({
-  selector: 'app-group-form',
+  selector: 'sn-group-form',
   standalone: true,
   imports: [
     CommonModule,
@@ -50,7 +51,10 @@ interface Card {
   template: `
     <div class="group-form-container">
       <div class="group-form-header">
-        <button class="back-btn" (click)="goBack()">
+        <button class="back-btn" (click)="goBack()"
+          (keydown.enter)="goBack()"
+          (keydown.space)="goBack()"
+          tabindex="0" role="button">
           <mat-icon>arrow_back</mat-icon>
           <span>返回群組列表</span>
         </button>
@@ -59,9 +63,10 @@ interface Card {
       <div class="group-form-content">
         <!-- 群組名稱區塊 -->
         <div class="group-name-section">
-          <label class="group-name-label">群組名稱：</label>
+          <label for="group-name-input" class="group-name-label">群組名稱：</label>
           <div class="group-name-input-wrapper">
             <input 
+              id="group-name-input"
               type="text" 
               [(ngModel)]="formData.name"
               placeholder="請輸入群組名稱"
@@ -71,23 +76,30 @@ interface Card {
 
         <!-- 工具欄按鈕 -->
         <div class="toolbar-buttons">
-          <button class="toolbar-btn toolbar-btn--select-card" (click)="openCardSelectionModal()">
+          <button class="toolbar-btn toolbar-btn--select-card" (click)="openCardSelectionModal()"
+            (keydown.enter)="openCardSelectionModal()"
+            (keydown.space)="openCardSelectionModal()"
+            tabindex="0" role="button">
             <mat-icon>credit_card</mat-icon>
             <span>選擇圖卡</span>
           </button>
-          <button class="toolbar-btn toolbar-btn--add">
+          <button class="toolbar-btn toolbar-btn--add"
+            tabindex="0" role="button">
             <mat-icon>add</mat-icon>
             <span>新增成員</span>
           </button>
-          <button class="toolbar-btn toolbar-btn--delete">
+          <button class="toolbar-btn toolbar-btn--delete"
+            tabindex="0" role="button">
             <mat-icon>delete</mat-icon>
             <span>刪除成員</span>
           </button>
-          <button class="toolbar-btn toolbar-btn--download">
+          <button class="toolbar-btn toolbar-btn--download"
+            tabindex="0" role="button">
             <mat-icon>download</mat-icon>
             <span>下載成員</span>
           </button>
-          <button class="toolbar-btn toolbar-btn--import">
+          <button class="toolbar-btn toolbar-btn--import"
+            tabindex="0" role="button">
             <mat-icon>file_upload</mat-icon>
             <span>成員匯入</span>
           </button>
@@ -105,7 +117,12 @@ interface Card {
               *ngFor="let member of members; let i = index" 
               class="member-row">
               <div class="member-column member-column--name">
-                <mat-icon class="member-edit-icon">edit</mat-icon>
+                <mat-icon class="member-edit-icon"
+                  (click)="editMember(member)"
+                  (keydown.enter)="editMember(member)"
+                  (keydown.space)="editMember(member)"
+                  tabindex="0" role="button"
+                  title="編輯成員">edit</mat-icon>
                 <span>{{ member.name }}</span>
               </div>
               <div class="member-column member-column--tag">
@@ -144,15 +161,26 @@ interface Card {
     <div 
       *ngIf="showCardSelectionModal" 
       class="modal-overlay"
-      (click)="closeCardSelection()">
+      (click)="closeCardSelection()"
+      (keydown.enter)="closeCardSelection()"
+      (keydown.space)="closeCardSelection()"
+      tabindex="0" role="button">
       <div 
         class="modal-container"
-        (click)="$event.stopPropagation()">
+        (click)="$event.stopPropagation()"
+        (keydown.enter)="$event.stopPropagation()"
+        (keydown.space)="$event.stopPropagation()"
+        tabindex="0" 
+        role="dialog"
+        aria-label="卡片選擇對話框">
         <div class="modal-header">
           <h2 class="modal-title">選擇圖卡</h2>
           <button 
             class="modal-close-btn"
-            (click)="closeCardSelection()">
+            (click)="closeCardSelection()"
+            (keydown.enter)="closeCardSelection()"
+            (keydown.space)="closeCardSelection()"
+            tabindex="0" role="button">
             <span class="close-icon">×</span>
           </button>
         </div>
@@ -185,12 +213,18 @@ interface Card {
         <div class="modal-footer">
           <button 
             class="modal-btn modal-btn--secondary"
-            (click)="closeCardSelection()">
+            (click)="closeCardSelection()"
+            (keydown.enter)="closeCardSelection()"
+            (keydown.space)="closeCardSelection()"
+            tabindex="0" role="button">
             取消
           </button>
           <button 
             class="modal-btn modal-btn--primary"
-            (click)="confirmCardSelection()">
+            (click)="confirmCardSelection()"
+            (keydown.enter)="confirmCardSelection()"
+            (keydown.space)="confirmCardSelection()"
+            tabindex="0" role="button">
             確認選擇
           </button>
         </div>
@@ -207,7 +241,8 @@ interface Card {
     
     formData: GroupFormData = {
       name: '',
-      description: ''
+      description: '',
+      color: '#000000'
     };
 
     members: GroupMember[] = [];
@@ -222,6 +257,8 @@ interface Card {
       { value: '活動', label: '活動', icon: 'event' },
       { value: '公告', label: '公告', icon: 'announcement' }
     ];
+
+    colorOptions = ['#000000', '#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
 
   constructor(
     private router: Router,
@@ -258,7 +295,8 @@ interface Card {
       // 模擬載入資料
       this.formData = {
         name: '1111_群組',
-        description: '這是一個測試群組'
+        description: '這是一個測試群組',
+        color: '#000000'
       };
     }
   }
@@ -272,8 +310,8 @@ interface Card {
       templates: this.templateApiService.getTemplates()
     }).subscribe({
       next: (result) => {
-                 // 轉換卡片資料
-         const cards: Card[] = result.cards.map(card => ({
+        // 轉換卡片資料
+        const cards: Card[] = result.cards.map(card => ({
            id: card.id,
            name: card.name,
            description: card.description || '',
@@ -283,8 +321,8 @@ interface Card {
            type: 'card'
          }));
 
-                 // 轉換樣板資料
-         const templates: Card[] = result.templates.map(template => ({
+        // 轉換樣板資料
+        const templates: Card[] = result.templates.map(template => ({
            id: template.id + 10000, // 避免ID衝突
            name: template.name,
            description: template.description || '',
@@ -297,15 +335,15 @@ interface Card {
         this.availableCards = [...cards, ...templates];
         this.loading = false;
       },
-      error: (error) => {
-        console.error('載入卡片和樣板失敗:', error);
+      error: () => {
+        console.error('載入卡片和樣板失敗');
         this.loading = false;
       }
     });
   }
 
   // 分類選擇
-  selectCategory(category: string) {
+  selectCategory(category: string): void {
     this.selectedCategory = category;
   }
 
@@ -333,13 +371,25 @@ interface Card {
     }
   }
 
-     // A/B面切換
-   onSideToggle(event: { card: CardItem, side: 'A' | 'B' }) {
-     const card = this.availableCards.find(c => c.id === event.card.id);
-     if (card) {
-       (card as any)._currentSide = event.side;
-     }
-   }
+  // 編輯成員
+  editMember(member: GroupMember): void {
+    console.log('編輯成員:', member);
+    // TODO: 實作編輯成員邏輯
+  }
+
+  // A/B面切換
+  onSideToggle(event: { card: CardItem, side: 'A' | 'B' }) {
+    const card = this.availableCards.find(c => c.id === event.card.id);
+    if (card) {
+      // 🛡️ 安全的屬性設置
+      Object.defineProperty(card, '_currentSide', {
+        value: event.side,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+    }
+  }
 
      // 轉換為CardItem格式
    convertToCardItem(card: Card): CardItem {
@@ -350,7 +400,10 @@ interface Card {
        thumbnailA: card.thumbnailA,
        thumbnailB: card.thumbnailB,
        category: card.category || '',
-       _currentSide: (card as any)._currentSide || 'A',
+       status: 1, // 預設為已發布狀態
+       _currentSide: Object.prototype.hasOwnProperty.call(card, '_currentSide') 
+         ? (card as Card & { _currentSide: 'A' | 'B' })._currentSide 
+         : 'A',
        isPublic: true,
        createdAt: new Date().toISOString()
      };
@@ -394,5 +447,9 @@ interface Card {
 
   goBack() {
     this.router.navigate(['/groups']);
+  }
+
+  selectColor(color: string) {
+    this.formData.color = color;
   }
 } 

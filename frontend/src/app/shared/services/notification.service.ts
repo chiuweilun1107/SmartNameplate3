@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Subject } from 'rxjs';
+import { CryptoService } from '../../core/services/crypto.service';
 
 export interface NotificationMessage {
   id: string;
@@ -20,6 +21,8 @@ export class NotificationService {
   private notifications$ = new BehaviorSubject<NotificationMessage[]>([]);
   private progressSubject = new Subject<{ id: string; progress: number }>();
 
+  constructor(private cryptoService: CryptoService) {}
+
   get notifications() {
     return this.notifications$.asObservable();
   }
@@ -28,8 +31,9 @@ export class NotificationService {
     return this.progressSubject.asObservable();
   }
 
+  // 🛡️ 使用安全的ID生成
   private generateId(): string {
-    return Math.random().toString(36).substr(2, 9);
+    return this.cryptoService.generateNotificationId();
   }
 
   show(notification: Omit<NotificationMessage, 'id'>): string {
@@ -99,11 +103,15 @@ export class NotificationService {
     });
   }
 
-  updateProgress(id: string, progress: number): void {
+  updateProgress(id: string, progress: number, message?: string): void {
     const current = this.notifications$.value;
     const updated = current.map(notification => 
       notification.id === id 
-        ? { ...notification, progress }
+        ? { 
+            ...notification, 
+            progress,
+            ...(message && { message })
+          }
         : notification
     );
     this.notifications$.next(updated);

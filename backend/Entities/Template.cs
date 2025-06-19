@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json;
 
 namespace SmartNameplate.Api.Entities;
 
@@ -20,11 +19,11 @@ public class Template
 
     public string? ThumbnailB { get; set; }  // B面縮圖
 
-    public JsonElement LayoutDataA { get; set; }
+    public string? LayoutDataA { get; set; }
 
-    public JsonElement LayoutDataB { get; set; }
+    public string? LayoutDataB { get; set; }
 
-    public JsonElement Dimensions { get; set; }
+    public string? Dimensions { get; set; }
 
     public int? OrganizationId { get; set; }
 

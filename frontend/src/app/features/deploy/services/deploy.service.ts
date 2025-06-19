@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { timeout } from 'rxjs/operators';
 import {
   Group,
   GroupDetail,
@@ -80,7 +81,9 @@ export class DeployService {
   }
 
   castImageToDevice(deviceId: number, deploy: DeployCard): Observable<{ message: string }> {
-    return this.http.post<{ message: string }>(`${this.apiUrl}/bluetooth/devices/${deviceId}/cast`, deploy);
+    // 投圖需要較長時間，設置120秒超時（雙面投圖需要更多時間）
+    return this.http.post<{ message: string }>(`${this.apiUrl}/bluetooth/devices/${deviceId}/cast`, deploy)
+      .pipe(timeout(120000)); // 120秒超時
   }
 
   removeDevice(id: number): Observable<void> {

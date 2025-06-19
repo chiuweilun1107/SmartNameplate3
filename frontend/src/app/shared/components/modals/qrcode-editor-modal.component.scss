@@ -102,6 +102,44 @@
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 16px;
+
+  // 確保使用共通組件的樣式
+  ::ng-deep sn-tag-button {
+    .tag-button {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border: 2px solid #e0e0e0;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-size: 14px;
+
+      &:hover {
+        border-color: #2196f3;
+        background: #f3f9ff;
+      }
+
+      &.active,
+      &.tag-button--active {
+        border-color: #2196f3;
+        background: #2196f3;
+        color: white;
+
+        .tag-button__icon {
+          color: white;
+        }
+      }
+
+      .tag-button__icon {
+        font-size: 18px;
+        width: 18px;
+        height: 18px;
+      }
+    }
+  }
 }
 
 .tab-button {
@@ -166,8 +204,14 @@
     width: 100%;
   }
 
-  .qr-slider {
-    width: 100%;
+  .size-slider-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .size-slider {
+    flex: 1;
     height: 6px;
     border-radius: 3px;
     background: #ddd;
@@ -197,6 +241,25 @@
 
     &:focus {
       box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+    }
+  }
+
+  .size-display {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 60px;
+    font-size: 14px;
+    color: #666;
+
+    .size-value {
+      font-weight: 500;
+      color: #333;
+    }
+
+    .size-unit {
+      font-size: 12px;
+      color: #999;
     }
   }
 }

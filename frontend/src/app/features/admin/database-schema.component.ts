@@ -4,6 +4,15 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatIconModule } from '@angular/material/icon';
 
+interface DatabaseColumn {
+  name: string;
+  type: string;
+  nullable: boolean;
+  defaultValue?: string;
+}
+
+type DatabaseRow = Record<string, unknown>;
+
 @Component({
   selector: 'sn-database-schema',
   standalone: true,
@@ -14,9 +23,15 @@ import { MatIconModule } from '@angular/material/icon';
         <h3 class="db-schema__sidebar-title">資料表</h3>
         <div class="db-schema__sidebar-divider"></div>
         <ul class="db-schema__sidebar-list">
-          <li *ngFor="let table of tables" (click)="selectTable(table)" 
+          <li *ngFor="let table of tables" 
+              (click)="selectTable(table)" 
+              (keydown.enter)="selectTable(table)"
+              (keydown.space)="selectTable(table)"
               [class.db-schema__sidebar-item--active]="table === selectedTable" 
-              class="db-schema__sidebar-item">
+              class="db-schema__sidebar-item"
+              tabindex="0"
+              role="button"
+              [attr.aria-label]="'選擇資料表 ' + table">
             {{ table }}
           </li>
         </ul>
@@ -38,62 +53,92 @@ import { MatIconModule } from '@angular/material/icon';
               <tbody>
                 <tr *ngFor="let row of pagedRows; let i = index" 
                     [ngStyle]="{'background': i % 2 === 0 ? '#fff' : '#f5f7fa'}" 
-                    (mouseenter)="row._hover = true" 
-                    (mouseleave)="row._hover = false" 
-                    [style.background]="row._hover ? '#d0e6ff' : (i % 2 === 0 ? '#fff' : '#f5f7fa')">
+                    (mouseenter)="row['_hover'] = true" 
+                    (mouseleave)="row['_hover'] = false" 
+                    [style.background]="row['_hover'] ? '#d0e6ff' : (i % 2 === 0 ? '#fff' : '#f5f7fa')">
                   <td *ngFor="let col of columns; let last = last" 
                       [style.borderRight]="!last ? '2px solid #888' : ''"
                       class="db-schema__table-cell">
                     <ng-container *ngIf="col.name === 'Thumbnail' || col.name === 'ThumbnailUrl' || col.name === 'LayoutData'; else contentOrNormalCell">
                       <div class="cell-content">
-                        <ng-container *ngIf="row[col.name] && row[col.name].length > 17; else shortThumb">
+                        <ng-container *ngIf="getRowValue(row, col.name) && getRowValue(row, col.name).length > 17; else shortThumb">
                           <span class="cell-text" 
-                                [class.expanded]="row['_expanded_' + col.name]"
-                                (click)="toggleExpand(row, col.name)">
-                            {{ row['_expanded_' + col.name] ? row[col.name] : (row[col.name] | slice:0:17) + '...' }}
+                                [class.expanded]="getExpandedState(row, col.name)"
+                                (click)="toggleExpand(row, col.name)"
+                                (keydown.enter)="toggleExpand(row, col.name)"
+                                (keydown.space)="toggleExpand(row, col.name)"
+                                tabindex="0"
+                                role="button"
+                                [attr.aria-label]="'展開或收合內容'">
+                            {{ getExpandedState(row, col.name) ? getRowValue(row, col.name) : (getRowValue(row, col.name) | slice:0:17) + '...' }}
                           </span>
                           <mat-icon class="expand-icon" 
                                    (click)="toggleExpand(row, col.name)"
-                                   [class.rotated]="row['_expanded_' + col.name]">
+                                    (keydown.enter)="toggleExpand(row, col.name)"
+                                    (keydown.space)="toggleExpand(row, col.name)"
+                                    tabindex="0"
+                                    role="button"
+                                    [attr.aria-label]="'展開或收合內容'"
+                                   [class.rotated]="getExpandedState(row, col.name)">
                             expand_more
                           </mat-icon>
                         </ng-container>
-                        <ng-template #shortThumb>{{ row[col.name] || '' }}</ng-template>
+                        <ng-template #shortThumb>{{ getRowValue(row, col.name) || '' }}</ng-template>
                       </div>
                     </ng-container>
                     <ng-template #contentOrNormalCell>
                       <ng-container *ngIf="col.name === 'Content' || col.name === 'ContentA' || col.name === 'ContentB'; else normalCell">
                         <div class="cell-content">
-                          <ng-container *ngIf="extractContentText(row[col.name]).length > 17; else shortContent">
+                          <ng-container *ngIf="extractContentText(getRowValue(row, col.name)).length > 17; else shortContent">
                             <span class="cell-text" 
-                                  [class.expanded]="row['_expanded_' + col.name]"
-                                  (click)="toggleExpand(row, col.name)">
-                              {{ row['_expanded_' + col.name] ? extractContentText(row[col.name]) : (extractContentText(row[col.name]) | slice:0:17) + '...' }}
+                                  [class.expanded]="getExpandedState(row, col.name)"
+                                  (click)="toggleExpand(row, col.name)"
+                                  (keydown.enter)="toggleExpand(row, col.name)"
+                                  (keydown.space)="toggleExpand(row, col.name)"
+                                  tabindex="0"
+                                  role="button"
+                                  [attr.aria-label]="'展開或收合內容'">
+                              {{ getExpandedState(row, col.name) ? extractContentText(getRowValue(row, col.name)) : (extractContentText(getRowValue(row, col.name)) | slice:0:17) + '...' }}
                             </span>
                             <mat-icon class="expand-icon" 
                                      (click)="toggleExpand(row, col.name)"
-                                     [class.rotated]="row['_expanded_' + col.name]">
+                                      (keydown.enter)="toggleExpand(row, col.name)"
+                                      (keydown.space)="toggleExpand(row, col.name)"
+                                      tabindex="0"
+                                      role="button"
+                                      [attr.aria-label]="'展開或收合內容'"
+                                     [class.rotated]="getExpandedState(row, col.name)">
                               expand_more
                             </mat-icon>
                           </ng-container>
-                          <ng-template #shortContent>{{ extractContentText(row[col.name]) }}</ng-template>
+                          <ng-template #shortContent>{{ extractContentText(getRowValue(row, col.name)) }}</ng-template>
                         </div>
                       </ng-container>
                       <ng-template #normalCell>
                         <div class="cell-content">
-                          <ng-container *ngIf="row[col.name] && row[col.name].toString().length > 17; else shortNormal">
+                          <ng-container *ngIf="getRowValue(row, col.name) && getRowValue(row, col.name).toString().length > 17; else shortNormal">
                             <span class="cell-text" 
-                                  [class.expanded]="row['_expanded_' + col.name]"
-                                  (click)="toggleExpand(row, col.name)">
-                              {{ row['_expanded_' + col.name] ? row[col.name] : (row[col.name].toString() | slice:0:17) + '...' }}
+                                  [class.expanded]="getExpandedState(row, col.name)"
+                                  (click)="toggleExpand(row, col.name)"
+                                  (keydown.enter)="toggleExpand(row, col.name)"
+                                  (keydown.space)="toggleExpand(row, col.name)"
+                                  tabindex="0"
+                                  role="button"
+                                  [attr.aria-label]="'展開或收合內容'">
+                              {{ getExpandedState(row, col.name) ? getRowValue(row, col.name) : (getRowValue(row, col.name).toString() | slice:0:17) + '...' }}
                             </span>
                             <mat-icon class="expand-icon" 
                                      (click)="toggleExpand(row, col.name)"
-                                     [class.rotated]="row['_expanded_' + col.name]">
+                                      (keydown.enter)="toggleExpand(row, col.name)"
+                                      (keydown.space)="toggleExpand(row, col.name)"
+                                      tabindex="0"
+                                      role="button"
+                                      [attr.aria-label]="'展開或收合內容'"
+                                     [class.rotated]="getExpandedState(row, col.name)">
                               expand_more
                             </mat-icon>
                           </ng-container>
-                          <ng-template #shortNormal>{{ row[col.name] }}</ng-template>
+                          <ng-template #shortNormal>{{ getRowValue(row, col.name) }}</ng-template>
                         </div>
                       </ng-template>
                     </ng-template>
@@ -266,8 +311,8 @@ import { MatIconModule } from '@angular/material/icon';
 export class DatabaseSchemaComponent implements OnInit {
   tables: string[] = [];
   selectedTable: string | null = null;
-  columns: any[] = [];
-  rows: any[] = [];
+  columns: DatabaseColumn[] = [];
+  rows: DatabaseRow[] = [];
   loadingRows = false;
 
   // 分頁相關
@@ -285,7 +330,7 @@ export class DatabaseSchemaComponent implements OnInit {
 
   constructor(private http: HttpClient) {}
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.http.get<string[]>('/api/database/tables').subscribe(tables => {
       this.tables = tables;
       if (tables.length > 0) {
@@ -299,14 +344,14 @@ export class DatabaseSchemaComponent implements OnInit {
     this.columns = [];
     this.rows = [];
     this.pageIndex = 0;
-    this.http.get<any[]>(`/api/database/tables/${table}/columns`).subscribe(cols => {
+    this.http.get<DatabaseColumn[]>(`/api/database/tables/${table}/columns`).subscribe(cols => {
       this.columns = cols;
     });
     this.loadingRows = true;
-    this.http.get<any[]>(`/api/database/tables/${table}/rows`).subscribe(rows => {
+    this.http.get<DatabaseRow[]>(`/api/database/tables/${table}/rows`).subscribe(rows => {
       this.rows = rows;
       this.loadingRows = false;
-    }, _ => this.loadingRows = false);
+    }, () => this.loadingRows = false);
   }
 
   prevPage() {
@@ -325,13 +370,85 @@ export class DatabaseSchemaComponent implements OnInit {
       const matches = Array.from(content.matchAll(/"content"\s*:\s*"(.*?)"/g));
       return matches.map(m => m[1]).join(', ');
     } catch {
+      // 🛡️ 記錄解析錯誤但不暴露敏感資訊
+      console.warn('內容解析失敗 - 使用預設值');
       return '';
     }
   }
 
-  // 新增：切換展開/收合功能
-  toggleExpand(row: any, columnName: string): void {
-    const expandKey = '_expanded_' + columnName;
-    row[expandKey] = !row[expandKey];
+  // 🛡️ 安全的切換展開/收合功能 - 防止 Object Injection
+  toggleExpand(row: DatabaseRow, columnName: string): void {
+    if (!row || typeof row !== 'object') return;
+    
+    const safeColumnName = this.sanitizeColumnName(columnName);
+    const expandKey = '_expanded_' + safeColumnName;
+    
+    if (Object.prototype.hasOwnProperty.call(row, expandKey)) {
+      // 🛡️ 安全的屬性設置
+      const currentValue = this.getSafePropertyValue(row, expandKey, false);
+      Object.defineProperty(row, expandKey, {
+        value: !currentValue,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+    } else {
+      // 🛡️ 安全的屬性設置
+      Object.defineProperty(row, expandKey, {
+        value: true,
+        writable: true,
+        enumerable: false,
+        configurable: true
+      });
+    }
+  }
+
+  // 🛡️ 安全的獲取行值 - 防止 Object Injection
+  getRowValue(row: DatabaseRow, columnName: string): string {
+    if (!row || typeof row !== 'object' || !columnName) return '';
+    
+    // 只允許安全的欄位名稱
+    const safeColumnName = this.sanitizeColumnName(columnName);
+    if (safeColumnName !== columnName) {
+      console.warn('不安全的欄位名稱被過濾:', columnName);
+      return '';
+    }
+    
+    // 🛡️ 安全的屬性存取並轉換為字符串
+    const value = this.getSafePropertyValue(row, columnName, '');
+    return value != null ? String(value) : '';
+  }
+
+  // 🛡️ 安全的獲取展開狀態 - 防止 Object Injection
+  getExpandedState(row: DatabaseRow, columnName: string): boolean {
+    if (!row || typeof row !== 'object') return false;
+    
+    const safeColumnName = this.sanitizeColumnName(columnName);
+    const expandKey = '_expanded_' + safeColumnName;
+    
+    // 🛡️ 安全的屬性存取
+    const value = this.getSafePropertyValue(row, expandKey, false);
+    return !!value;
+  }
+
+  // 清理欄位名稱，防止注入攻擊
+  private sanitizeColumnName(columnName: string): string {
+    if (!columnName || typeof columnName !== 'string') return 'unknown';
+    
+    return columnName
+      .replace(/[^a-zA-Z0-9_]/g, '_') // 只允許字母、數字和底線
+      .substring(0, 50); // 限制長度
+  }
+
+  // 🛡️ 安全的屬性值獲取 - 防止 Object Injection
+  private getSafePropertyValue(obj: DatabaseRow, key: string, defaultValue: unknown = undefined): unknown {
+    if (!obj || typeof obj !== 'object' || !key) return defaultValue;
+    
+    if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      const value = Object.getOwnPropertyDescriptor(obj, key)?.value;
+      return value !== undefined ? value : defaultValue;
+    }
+    
+    return defaultValue;
   }
 } 

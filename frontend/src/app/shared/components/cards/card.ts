@@ -26,11 +26,11 @@ import { RouterModule } from '@angular/router';
   styleUrls: ['./card.scss']
 })
 export class HomeFeatureCardComponent {
-  @Input() icon: string = '';
-  @Input() iconClass: string = '';
-  @Input() title: string = '';
-  @Input() desc: string = '';
-  @Input() link: string = '';
-  @Input() linkText: string = '';
-  @Input() customClass: string = '';
+  @Input() icon = '';
+  @Input() iconClass = '';
+  @Input() title = '';
+  @Input() desc = '';
+  @Input() link = '';
+  @Input() linkText = '';
+  @Input() customClass = '';
 } 

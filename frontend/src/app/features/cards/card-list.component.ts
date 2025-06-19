@@ -42,11 +42,11 @@ export class CardListComponent implements OnInit {
     });
   }
 
-  trackByCardId(index: number, card: any): number {
+  trackByCardId(index: number, card: CardWithSide): number {
     return card.id;
   }
 
-  selectCard(card: any): void {
+  selectCard(card: CardWithSide): void {
     console.log('選中桌牌:', card);
     console.log('導航到路徑:', `/cards/edit/${card.id}`);
     // 導航到編輯頁面
@@ -114,17 +114,17 @@ export class CardListComponent implements OnInit {
     }
     
     // 生成基於卡片內容的預覽
-    return this.generatePreviewFromContent(content, card.id, side);
+    return this.generatePreviewFromContent(content);
   }
 
-  private generatePreviewFromContent(content: any, cardId: number, side: 'A' | 'B'): string {
+  private generatePreviewFromContent(content: unknown): string {
     // 這裡可以根據內容類型生成不同的預覽圖
     // 暫時返回默認圖片，後續可以實作內容解析
     try {
       const parsedContent = typeof content === 'string' ? JSON.parse(content) : content;
-      if (parsedContent && parsedContent.background) {
+      if (parsedContent && typeof parsedContent === 'object' && 'background' in parsedContent) {
         // 使用正確的background字段
-        return this.generateColorPreview(parsedContent.background);
+        return this.generateColorPreview((parsedContent as { background: string }).background);
       }
     } catch (e) {
       console.log('解析內容失敗:', e);
@@ -168,21 +168,24 @@ export class CardListComponent implements OnInit {
     return {
       id: card.id,
       name: card.name,
-      description: card.description,
+      description: card.description || undefined,
       thumbnailA: card.thumbnailA,
       thumbnailB: card.thumbnailB,
-      category: '桌牌', // Card 沒有 category 屬性，設定預設值
-      status: card.status,
+      category: '桌牌',
+      status: card.status || undefined,
       contentA: card.contentA,
       contentB: card.contentB,
       _currentSide: card._currentSide,
-      isPublic: false, // Card 預設為非公開
+      isPublic: false,
       createdAt: card.createdAt
     };
   }
 
   onCardClick(cardItem: CardItem): void {
-    this.selectCard(cardItem);
+    const card = this.cards.find(c => c.id === cardItem.id);
+    if (card) {
+      this.selectCard(card);
+    }
   }
 
   onCardDelete(cardItem: CardItem): void {

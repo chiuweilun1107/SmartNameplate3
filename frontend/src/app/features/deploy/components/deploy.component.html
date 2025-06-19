@@ -19,7 +19,10 @@
             <button 
               *ngIf="selectedCards.length > 0 && activeTab === 'cards'"
               class="deploy__edit-button"
-              (click)="openCardSelection()">
+              (click)="openCardSelection()"
+              (keydown.enter)="selectedCards.length === 0 ? openCardSelection() : null"
+              (keydown.space)="selectedCards.length === 0 ? openCardSelection() : null"
+              tabindex="0" role="button">
               選取圖卡
             </button>
             <span class="deploy__card-count" *ngIf="activeTab === 'cards'">已選取 {{ selectedCards.length }} 張圖卡</span>
@@ -28,7 +31,10 @@
             <button 
               *ngIf="activeTab === 'groups'"
               class="deploy__edit-button"
-              (click)="openGroupSelection()">
+              (click)="openGroupSelection()"
+              (keydown.enter)="!selectedGroup ? openGroupSelection() : null"
+              (keydown.space)="!selectedGroup ? openGroupSelection() : null"
+              tabindex="0" role="button">
               選取群組
             </button>
             <span class="deploy__card-count" *ngIf="activeTab === 'groups'">已選擇 {{ selectedGroup?.name || '無' }} 群組</span>
@@ -36,10 +42,14 @@
 
           <!-- 圖卡投圖內容 -->
           <div *ngIf="activeTab === 'cards'">
-            <div class="deploy__cards" (click)="selectedCards.length === 0 ? openCardSelection() : null" [class.deploy__cards--clickable]="selectedCards.length === 0">
+            <div class="deploy__cards" (click)="selectedCards.length === 0 ? openCardSelection() : null" [class.deploy__cards--clickable]="selectedCards.length === 0"
+              (keydown.enter)="selectedCards.length === 0 ? openCardSelection() : null"
+              (keydown.space)="selectedCards.length === 0 ? openCardSelection() : null"
+              tabindex="0" role="button">
               <div 
-                *ngFor="let card of selectedCards" 
+                *ngFor="let card of selectedCards; let i = index" 
                 class="deploy__card-item deploy__card-item--horizontal">
+                <div class="deploy__card-index">{{ i + 1 }}</div>
                 <div class="deploy__card-info">
                   <h4 class="deploy__card-name">{{ card.name }}</h4>
                   <p class="deploy__card-desc">{{ card.description }}</p>
@@ -84,11 +94,61 @@
 
           <!-- 群組投圖內容 -->
           <div *ngIf="activeTab === 'groups'">
-            <div class="deploy__cards" (click)="openGroupSelection()" [class.deploy__cards--clickable]="true">
+            <div class="deploy__cards" (click)="!selectedGroup ? openGroupSelection() : null" [class.deploy__cards--clickable]="!selectedGroup"
+              (keydown.enter)="!selectedGroup ? openGroupSelection() : null"
+              (keydown.space)="!selectedGroup ? openGroupSelection() : null"
+              tabindex="0" role="button">
+              <!-- 顯示選中的群組卡片 -->
+              <div *ngIf="selectedGroup && selectedGroup.cards && selectedGroup.cards.length > 0">
+                <div 
+                  *ngFor="let card of selectedGroup.cards; let i = index" 
+                  class="deploy__card-item deploy__card-item--horizontal">
+                  <div class="deploy__card-index">{{ i + 1 }}</div>
+                  <div class="deploy__card-info">
+                    <h4 class="deploy__card-name">{{ card.name }}</h4>
+                    <p class="deploy__card-desc">{{ card.description }}</p>
+                  </div>
+                  <div class="deploy__card-thumbnail deploy__card-thumbnail--dual">
+                    <div class="deploy__card-side deploy__card-side--a">
+                      <img 
+                        *ngIf="card.thumbnailA || card.thumbnail" 
+                        [src]="card.thumbnailA || card.thumbnail" 
+                        [alt]="card.name + ' - A面'"
+                        class="deploy__card-image">
+                      <div 
+                        *ngIf="!card.thumbnailA && !card.thumbnail" 
+                        class="deploy__card-placeholder">
+                        <span>A</span>
+                      </div>
+                      <div class="deploy__card-label">A</div>
+                    </div>
+                    <div class="deploy__card-side deploy__card-side--b">
+                      <img 
+                        *ngIf="card.thumbnailB" 
+                        [src]="card.thumbnailB" 
+                        [alt]="card.name + ' - B面'"
+                        class="deploy__card-image">
+                      <div 
+                        *ngIf="!card.thumbnailB" 
+                        class="deploy__card-placeholder">
+                        <span>B</span>
+                      </div>
+                      <div class="deploy__card-label">B</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
               <!-- 空狀態提示 -->
-              <div class="deploy__empty-state deploy__empty-state--clickable">
+              <div *ngIf="!selectedGroup" class="deploy__empty-state deploy__empty-state--clickable">
                 <p>尚未選擇任何群組</p>
                 <p>請點擊「選取群組」按鈕來選擇要部署的群組</p>
+              </div>
+              
+              <!-- 群組無卡片提示 -->
+              <div *ngIf="selectedGroup && (!selectedGroup.cards || selectedGroup.cards.length === 0)" class="deploy__empty-state">
+                <p>此群組尚無任何卡片</p>
+                <p>請到管理頁面為此群組添加卡片</p>
               </div>
             </div>
           </div>
@@ -107,6 +167,17 @@
           
           <!-- 頁籤右側按鈕 -->
           <div slot="tab-actions">
+            <!-- 部署頁籤的按鈕 -->
+            <ng-container *ngIf="activeDeviceTab === 'deploy'">
+              <button class="deploy__edit-button" (click)="autoDeployToAllDevices()">
+                自動部署
+              </button>
+              <button class="deploy__edit-button deploy__edit-button--cast" (click)="castToAllDevices()">
+                一鍵投圖
+              </button>
+            </ng-container>
+            
+            <!-- 新增設備頁籤的按鈕 -->
             <button class="deploy__edit-button" *ngIf="activeDeviceTab === 'add'" (click)="openBluetoothScan()">
               新增設備
             </button>
@@ -129,7 +200,10 @@
                 class="deploy__device-item deploy__device-item--with-delete">
                 <div class="deploy__device-info">
                   <span class="deploy__device-index-wrapper">
-                    <span class="deploy__device-index" (click)="editIndex = device.bluetoothAddress">
+                    <span class="deploy__device-index" (click)="editIndex = device.bluetoothAddress"
+                      (keydown.enter)="editIndex = device.bluetoothAddress"
+                      (keydown.space)="editIndex = device.bluetoothAddress"
+                      tabindex="0" role="button">
                       <ng-container *ngIf="editIndex === device.bluetoothAddress; else showIndex">
                         <input
                           type="text"
@@ -138,7 +212,7 @@
                           (blur)="onDeviceIndexInputBlur(device, $event)"
                           (keydown.enter)="onDeviceIndexInputBlur(device, $event)"
                           style="width: 32px; text-align: center; border: none; background: transparent; font-weight: bold; font-size: 18px; outline: none; padding: 0; margin: 0;"
-                          autofocus
+                         
                         />
                       </ng-container>
                       <ng-template #showIndex>
@@ -189,15 +263,36 @@
                   </button>
                 </div>
                 <!-- 部署卡片選擇彈窗 -->
-                <div *ngIf="showDeployCardModalFor === device.id" class="deploy__modal-overlay" (click)="closeDeployCardModal()">
-                  <div class="deploy__modal" (click)="$event.stopPropagation()">
+                <div *ngIf="showDeployCardModalFor === device.id" class="deploy__modal-overlay" 
+                  (click)="closeDeployCardModal()"
+                  (keydown.enter)="closeDeployCardModal()"
+                  (keydown.space)="closeDeployCardModal()"
+                  tabindex="0" role="button"
+                  (keydown.enter)="closeDeployCardModal()"
+                  (keydown.space)="closeDeployCardModal()"
+                  tabindex="0" role="button">
+                  <div class="deploy__modal" 
+                       (click)="$event.stopPropagation()"
+                       (keydown.enter)="$event.stopPropagation()"
+                       (keydown.space)="$event.stopPropagation()"
+                       tabindex="0" 
+                       role="dialog"
+                       aria-label="部署卡片對話框">
                     <div class="deploy__modal-header">
                       <h3 class="deploy__modal-title">選擇要部署的圖卡</h3>
-                      <button class="deploy__modal-close" (click)="closeDeployCardModal()">關閉</button>
+                      <button class="deploy__modal-close" 
+                        (click)="closeDeployCardModal()"
+                        (keydown.enter)="closeDeployCardModal()"
+                        (keydown.space)="closeDeployCardModal()"
+                        tabindex="0" role="button">關閉</button>
                     </div>
                     <div class="deploy__modal-content">
                       <div class="deploy__card-selection">
-                        <button *ngFor="let card of selectedCards" class="deploy__btn deploy__btn--small deploy__btn--deploy-select-modal" (click)="deployCard(device, card); closeDeployCardModal()">
+                        <button *ngFor="let card of selectedCards" class="deploy__btn deploy__btn--small deploy__btn--deploy-select-modal" 
+                          (click)="deployCard(device, card); closeDeployCardModal()"
+                          (keydown.enter)="deployCard(device, card); closeDeployCardModal()"
+                          (keydown.space)="deployCard(device, card); closeDeployCardModal()"
+                          tabindex="0" role="button">
                           {{ card.name }}
                         </button>
                       </div>
@@ -249,15 +344,28 @@
   <div 
     *ngIf="showCardSelectionModal" 
     class="modal-overlay"
-    (click)="closeCardSelection()">
+    (click)="closeCardSelection()"
+    (keydown.enter)="closeCardSelection()"
+    (keydown.space)="closeCardSelection()"
+    tabindex="0" 
+    role="button"
+    aria-label="關閉卡片選擇對話框">
     <div 
       class="modal-container"
-      (click)="$event.stopPropagation()">
+      (click)="$event.stopPropagation()"
+      (keydown.enter)="$event.stopPropagation()"
+      (keydown.space)="$event.stopPropagation()"
+      tabindex="0" 
+      role="dialog"
+      aria-label="卡片選擇對話框內容">
       <div class="modal-header">
         <h2 class="modal-title">{{ text.sections.modal.card.title }}</h2>
         <button 
           class="modal-close-btn"
-          (click)="closeCardSelection()">
+          (click)="closeCardSelection()"
+          (keydown.enter)="closeCardSelection()"
+          (keydown.space)="closeCardSelection()"
+          tabindex="0" role="button">
           <span class="close-icon">×</span>
         </button>
       </div>
@@ -276,7 +384,13 @@
                 (change)="onCardToggle(card)">
             </div>
             <label [for]="'card-' + card.id" class="card-selection-label">
-              <div class="card-preview">
+              <div class="card-preview"
+                (click)="onCardToggle(card)"
+                (keydown.enter)="onCardToggle(card)"
+                (keydown.space)="onCardToggle(card)"
+                tabindex="0" 
+                role="button"
+                [attr.aria-label]="'切換選擇卡片 ' + card.name">
                 <div class="side-toggle-buttons">
                   <button 
                     class="side-toggle" 
@@ -323,12 +437,18 @@
       <div class="modal-footer">
         <button 
           class="modal-btn modal-btn--secondary"
-          (click)="closeCardSelection()">
+          (click)="closeCardSelection()"
+          (keydown.enter)="closeCardSelection()"
+          (keydown.space)="closeCardSelection()"
+          tabindex="0" role="button">
           取消
         </button>
         <button 
           class="modal-btn modal-btn--primary"
-          (click)="confirmCardSelection()">
+          (click)="confirmCardSelection()"
+          (keydown.enter)="confirmCardSelection()"
+          (keydown.space)="confirmCardSelection()"
+          tabindex="0" role="button">
           確認選擇
         </button>
       </div>
@@ -339,15 +459,26 @@
   <div 
     *ngIf="showBluetoothModal" 
     class="modal-overlay"
-    (click)="closeBluetoothModal()">
+    (click)="closeBluetoothModal()"
+    (keydown.enter)="closeBluetoothModal()"
+    (keydown.space)="closeBluetoothModal()"
+    tabindex="0" role="button">
     <div 
       class="modal-container"
-      (click)="$event.stopPropagation()">
+      (click)="$event.stopPropagation()"
+      (keydown.enter)="$event.stopPropagation()"
+      (keydown.space)="$event.stopPropagation()"
+      tabindex="0" 
+      role="dialog"
+      aria-label="藍牙設備選擇對話框內容">
       <div class="modal-header">
         <h3 class="modal-title">{{ text.sections.modal.bluetooth.title }}</h3>
         <button 
           class="modal-close-btn"
-          (click)="closeBluetoothModal()">
+          (click)="closeBluetoothModal()"
+          (keydown.enter)="closeBluetoothModal()"
+          (keydown.space)="closeBluetoothModal()"
+          tabindex="0" role="button">
           <span class="close-icon">×</span>
         </button>
       </div>
@@ -362,7 +493,10 @@
           <p>{{ text.sections.modal.bluetooth.noDevices }}</p>
           <button 
             class="modal-btn modal-btn--primary"
-            (click)="scanForDevices()">
+            (click)="scanForDevices()"
+            (keydown.enter)="scanForDevices()"
+            (keydown.space)="scanForDevices()"
+            tabindex="0" role="button">
             {{ text.sections.modal.bluetooth.scanBtn }}
           </button>
         </div>
@@ -396,13 +530,20 @@
       <div class="modal-footer">
         <button 
           class="modal-btn modal-btn--secondary"
-          (click)="closeBluetoothModal()">
+          (click)="closeBluetoothModal()"
+          (keydown.enter)="closeBluetoothModal()"
+          (keydown.space)="closeBluetoothModal()"
+          tabindex="0" 
+          role="button">
           取消
         </button>
         <button 
           class="modal-btn modal-btn--primary"
           [disabled]="selectedDevices.size === 0"
-          (click)="confirmDeviceSelection()">
+          (click)="confirmDeviceSelection()"
+          (keydown.enter)="confirmDeviceSelection()"
+          (keydown.space)="confirmDeviceSelection()"
+          tabindex="0" role="button">
           {{ text.sections.modal.bluetooth.confirmBtn }}
         </button>
       </div>

@@ -30,6 +30,7 @@ namespace SmartNameplate.Api.Controllers
         /// 🔐 安全用戶登入
         /// </summary>
         [HttpPost("login")]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult<LoginResponse>> Login([FromBody] LoginRequest request)
         {
             try

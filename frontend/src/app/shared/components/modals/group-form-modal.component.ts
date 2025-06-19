@@ -24,13 +24,24 @@ export interface GroupFormData {
     MatInputModule
   ],
   template: `
-    <div class="modal-overlay" (click)="onOverlayClick($event)" *ngIf="isVisible">
-      <div class="modal-container" (click)="$event.stopPropagation()">
+    <div class="modal-overlay" 
+      (click)="onOverlayClick($event)"
+      (keydown.enter)="onOverlayClick($event)"
+      (keydown.space)="onOverlayClick($event)"
+      tabindex="0" role="button" *ngIf="isVisible">
+      <div class="modal-container" 
+        (click)="$event.stopPropagation()"
+        (keydown.enter)="$event.stopPropagation()"
+        (keydown.space)="$event.stopPropagation()"
+        tabindex="0" role="button">
         <div class="modal-header">
           <h2 class="modal-title">{{ isEdit ? '編輯群組' : '新增群組' }}</h2>
           <button 
             class="modal-close-btn"
-            (click)="close.emit()">
+            (click)="modalClose.emit()"
+            (keydown.enter)="modalClose.emit()"
+            (keydown.space)="modalClose.emit()"
+            tabindex="0" role="button">
             <span class="close-icon">×</span>
           </button>
         </div>
@@ -38,38 +49,41 @@ export interface GroupFormData {
         <div class="modal-content">
           <form class="group-form" (ngSubmit)="onSubmit()" #groupForm="ngForm">
             <div class="form-group">
-              <label for="groupName">群組名稱 *</label>
+              <label for="group-name-input" class="group-form-modal__label">名稱</label>
               <input
+                id="group-name-input"
                 type="text"
-                id="groupName"
-                name="groupName"
                 [(ngModel)]="formData.name"
-                required
                 placeholder="請輸入群組名稱"
-                class="form-input">
+                class="group-form-modal__input"
+                required>
             </div>
 
             <div class="form-group">
-              <label for="groupDescription">群組描述</label>
+              <label for="group-description-input" class="group-form-modal__label">描述</label>
               <textarea
-                id="groupDescription"
+                id="group-description-input"
                 name="groupDescription"
                 [(ngModel)]="formData.description"
                 placeholder="請輸入群組描述（選填）"
-                class="form-textarea"
-                rows="3"></textarea>
+                class="group-form-modal__textarea"
+                rows="3">
+              </textarea>
             </div>
 
             <div class="form-group">
-              <label>群組顏色 *</label>
-              <div class="color-picker">
+              <label for="group-color-picker">群組顏色 *</label>
+              <div class="color-picker" id="group-color-picker" role="radiogroup" aria-label="選擇群組顏色">
                 <div 
                   *ngFor="let color of colorOptions"
                   class="color-option"
                   [class.selected]="formData.color === color.value"
                   [style.background-color]="color.value"
                   [title]="color.name"
-                  (click)="selectColor(color.value)">
+                  (click)="selectColor(color.value)"
+                  (keydown.enter)="selectColor(color.value)"
+                  (keydown.space)="selectColor(color.value)"
+                  tabindex="0" role="button">
                   <span *ngIf="formData.color === color.value" class="check-icon">✓</span>
                 </div>
               </div>
@@ -80,13 +94,19 @@ export interface GroupFormData {
         <div class="modal-footer">
           <button 
             class="modal-btn modal-btn--secondary"
-            (click)="close.emit()">
+            (click)="modalClose.emit()"
+            (keydown.enter)="modalClose.emit()"
+            (keydown.space)="modalClose.emit()"
+            tabindex="0" role="button">
             取消
           </button>
           <button 
             class="modal-btn modal-btn--primary"
             [disabled]="!isFormValid()"
-            (click)="onSubmit()">
+            (click)="onSubmit()"
+            (keydown.enter)="onSubmit()"
+            (keydown.space)="onSubmit()"
+            tabindex="0" role="button">
             {{ isEdit ? '儲存' : '建立群組' }}
           </button>
         </div>
@@ -100,8 +120,8 @@ export class GroupFormModalComponent implements OnInit, OnChanges {
   @Input() isEdit = false;
   @Input() initialData: Partial<GroupFormData> = {};
 
-  @Output() close = new EventEmitter<void>();
-  @Output() submit = new EventEmitter<GroupFormData>();
+  @Output() modalClose = new EventEmitter<void>();
+  @Output() formSubmit = new EventEmitter<GroupFormData>();
 
   formData: GroupFormData = {
     name: '',
@@ -153,13 +173,13 @@ export class GroupFormModalComponent implements OnInit, OnChanges {
 
   onSubmit() {
     if (this.isFormValid()) {
-      this.submit.emit({ ...this.formData });
+      this.formSubmit.emit({ ...this.formData });
     }
   }
 
   onOverlayClick(event: Event): void {
     if (event.target === event.currentTarget) {
-      this.close.emit();
+      this.modalClose.emit();
     }
   }
 } 

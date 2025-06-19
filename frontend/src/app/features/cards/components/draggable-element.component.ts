@@ -1,6 +1,6 @@
-import { Component, Input, Output, EventEmitter, ElementRef, OnInit, OnDestroy, OnChanges, SimpleChanges, HostListener, ChangeDetectorRef } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ElementRef, OnInit, OnDestroy, OnChanges, SimpleChanges, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { CanvasElement, Position, Size } from '../models/card-design.models';
+import { CanvasElement, Position, Size, TextElement, ImageElement, ShapeElement, QRCodeElement } from '../models/card-design.models';
 import { Subject, fromEvent, takeUntil } from 'rxjs';
 import { QRCodeModule } from 'angularx-qrcode';
 import { TextToolbarRedesignedComponent, TextStyle } from '../../../shared/components/toolbars/text-toolbar-redesigned.component';
@@ -9,11 +9,20 @@ import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { IconActionButtonComponent } from '../../../shared/components/buttons/icon-action-button.component';
+import { TagButtonComponent } from '../../../shared/components/tags/tag-button.component';
+
+interface CropData {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  apply?: boolean;
+}
 
 @Component({
   selector: 'sn-draggable-element',
   standalone: true,
-  imports: [CommonModule, QRCodeModule, TextToolbarRedesignedComponent, ElementEditToolbarComponent, FormsModule, MatButtonModule, MatIconModule, IconActionButtonComponent],
+  imports: [CommonModule, QRCodeModule, TextToolbarRedesignedComponent, ElementEditToolbarComponent, FormsModule, MatButtonModule, MatIconModule, IconActionButtonComponent, TagButtonComponent],
   templateUrl: './draggable-element.component.html',
   styleUrls: ['./draggable-element.component.scss']
 })
@@ -29,7 +38,7 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
   @Output() elementResized = new EventEmitter<{id: string, size: Size}>();
   @Output() elementUpdated = new EventEmitter<{id: string, updates: Partial<CanvasElement>}>();
   @Output() elementDeleted = new EventEmitter<string>();
-  @Output() cropChanged = new EventEmitter<{id: string, cropData: any}>();
+  @Output() cropChanged = new EventEmitter<{id: string, cropData: CropData}>();
 
   isDragging = false;
   isResizing = false;
@@ -82,17 +91,31 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
     }
   }
 
-  onElementClick(event: MouseEvent): void {
+  onElementActivate(event: Event): void {
+    if (event instanceof MouseEvent) {
+      // 僅允許滑鼠左鍵
+      if (event.type === 'click' && event.button !== 0) {
+        return;
+      }
+      event.stopPropagation();
+      this.elementSelected.emit(this.element.id);
+      return;
+    }
+    if (event instanceof KeyboardEvent) {
+      // 僅允許 Enter/Space
+      if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
     event.stopPropagation();
-
-    // 發送選中事件
     this.elementSelected.emit(this.element.id);
+      return;
+    }
   }
 
   onTextStyleChange(newStyle: TextStyle): void {
     const textElement = this.getTextElement();
 
-    const updates: any = {
+    const updates: Partial<CanvasElement> = {
       style: {
         ...textElement.style,
         ...newStyle
@@ -197,7 +220,7 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
     const logicalDeltaX = deltaX * scaleX;
     const logicalDeltaY = deltaY * scaleY;
 
-    let newPosition = {
+    const newPosition = {
       x: this.elementStart.x + logicalDeltaX,
       y: this.elementStart.y + logicalDeltaY
     };
@@ -261,8 +284,67 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
     const newSize = { ...this.resizeStartSize };
     const newPosition = { ...this.elementStart };
 
+    // === QR Code 元素：保持正方形 ===
+    if (this.element.type === 'qrcode') {
+      const width = this.resizeStartSize.width;
+      const height = this.resizeStartSize.height;
+      let newWidth = width;
+      let newHeight = height;
+      let newX = this.elementStart.x;
+      let newY = this.elementStart.y;
+      
+      switch (this.resizeHandle) {
+        case 'e':
+          newWidth = Math.max(20, width + logicalDeltaX);
+          newHeight = newWidth; // 保持正方形
+          break;
+        case 'w':
+          newWidth = Math.max(20, width - logicalDeltaX);
+          newHeight = newWidth; // 保持正方形
+          newX = this.elementStart.x + (width - newWidth);
+          break;
+        case 's':
+          newHeight = Math.max(20, height + logicalDeltaY);
+          newWidth = newHeight; // 保持正方形
+          break;
+        case 'n':
+          newHeight = Math.max(20, height - logicalDeltaY);
+          newWidth = newHeight; // 保持正方形
+          newY = this.elementStart.y + (height - newHeight);
+          break;
+        case 'se':
+        case 'sw':
+        case 'ne':
+        case 'nw': {
+          // 角落控制點：保持正方形，取較大的變化量
+          const sizeDeltaX = (this.resizeHandle === 'se' || this.resizeHandle === 'ne') ? logicalDeltaX : -logicalDeltaX;
+          const sizeDeltaY = (this.resizeHandle === 'se' || this.resizeHandle === 'sw') ? logicalDeltaY : -logicalDeltaY;
+          
+          // 取較大的變化量來決定新尺寸
+          let sizeDelta = Math.abs(sizeDeltaX) > Math.abs(sizeDeltaY) ? sizeDeltaX : sizeDeltaY;
+          if (this.resizeHandle === 'nw') sizeDelta = -Math.max(Math.abs(sizeDeltaX), Math.abs(sizeDeltaY));
+          else sizeDelta = Math.max(sizeDeltaX, sizeDeltaY);
+          
+          newWidth = Math.max(20, width + sizeDelta);
+          newHeight = newWidth; // 保持正方形
+          
+          // 調整位置以保持中心點
+          if (this.resizeHandle === 'nw' || this.resizeHandle === 'sw') {
+            newX = this.elementStart.x + (width - newWidth);
+          }
+          if (this.resizeHandle === 'nw' || this.resizeHandle === 'ne') {
+            newY = this.elementStart.y + (height - newHeight);
+          }
+          break;
+        }
+      }
+      newSize.width = newWidth;
+      newSize.height = newHeight;
+      newPosition.x = newX;
+      newPosition.y = newY;
+    } 
     // === 圓形 shapeType: 'circle' ===
-    if (this.element.type === 'shape' && this.getShapeElement().shapeType === 'circle') {
+    else if (this.element.type === 'shape' && this.getShapeElement().shapeType === 'circle') {
       const width = this.resizeStartSize.width;
       const height = this.resizeStartSize.height;
       let newWidth = width;
@@ -290,8 +372,8 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
         case 'ne':
         case 'nw': {
           // 角落控制點：依照當下比例等比縮放
-          let sizeDeltaX = (this.resizeHandle === 'se' || this.resizeHandle === 'ne') ? logicalDeltaX : -logicalDeltaX;
-          let sizeDeltaY = (this.resizeHandle === 'se' || this.resizeHandle === 'sw') ? logicalDeltaY : -logicalDeltaY;
+          const sizeDeltaX = (this.resizeHandle === 'se' || this.resizeHandle === 'ne') ? logicalDeltaX : -logicalDeltaX;
+          const sizeDeltaY = (this.resizeHandle === 'se' || this.resizeHandle === 'sw') ? logicalDeltaY : -logicalDeltaY;
           // 取最大變化量，維持比例
           let sizeDelta = Math.abs(sizeDeltaX) > Math.abs(sizeDeltaY) ? sizeDeltaX : sizeDeltaY;
           if (this.resizeHandle === 'nw') sizeDelta = -Math.max(Math.abs(sizeDeltaX), Math.abs(sizeDeltaY));
@@ -399,7 +481,7 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
     newSize.height = Math.min(newSize.height, logicalCanvasHeight - newPosition.y);
 
     // 如果是文字元素，計算新的字體大小
-    let updates: any = { size: newSize };
+    const updates: Partial<CanvasElement> = { size: newSize };
 
     if (this.element.type === 'text') {
       const textElement = this.getTextElement();
@@ -430,8 +512,22 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // 類型安全的getter方法
-  getTextElement(): any {
-    return this.element.type === 'text' ? this.element : {};
+  getTextElement(): TextElement {
+    return this.element.type === 'text' ? (this.element as TextElement) : {
+      id: '',
+      type: 'text',
+      position: { x: 0, y: 0 },
+      size: { width: 100, height: 50 },
+      zIndex: 0,
+      style: {
+        fontSize: 16,
+        fontFamily: 'Arial, sans-serif',
+        fontWeight: 'normal',
+        color: '#000000',
+        textAlign: 'left'
+      },
+      content: ''
+    };
   }
 
   getTextElementFontFamily(): string {
@@ -447,16 +543,84 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
     return `'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', 'Microsoft YaHei', ${fontFamily}, sans-serif`;
   }
 
-  getImageElement(): any {
-    return this.element.type === 'image' ? this.element : {};
+  getImageElement(): ImageElement {
+    return this.element.type === 'image' ? (this.element as ImageElement) : {
+      id: '',
+      type: 'image',
+      position: { x: 0, y: 0 },
+      size: { width: 100, height: 100 },
+      zIndex: 0,
+      style: {},
+      src: '',
+      alt: ''
+    };
   }
 
-  getShapeElement(): any {
-    return this.element.type === 'shape' ? this.element : {};
+  getShapeElement(): ShapeElement {
+    return this.element.type === 'shape' ? (this.element as ShapeElement) : {
+      id: '',
+      type: 'shape',
+      position: { x: 0, y: 0 },
+      size: { width: 100, height: 100 },
+      zIndex: 0,
+      style: {
+        backgroundColor: '#e3f2fd'
+      },
+      shapeType: 'rectangle'
+    };
   }
 
-  getQRCodeElement(): any {
-    return this.element.type === 'qrcode' ? this.element : {};
+  getQRCodeElement(): QRCodeElement {
+    return this.element.type === 'qrcode' ? (this.element as QRCodeElement) : {
+      id: '',
+      type: 'qrcode',
+      position: { x: 0, y: 0 },
+      size: { width: 100, height: 100 },
+      zIndex: 0,
+      style: {
+        backgroundColor: '#fff',
+        foregroundColor: '#000',
+        borderColor: '#000',
+        borderWidth: 0,
+        borderRadius: 0
+      },
+      data: '',
+      margin: 4,
+      errorCorrectionLevel: 'M'
+    };
+  }
+
+  // QR Code 顯示大小計算（保持正方形，置中顯示）
+  getQRCodeDisplaySize(): number {
+    if (!this.canvasElement || this.element.type !== 'qrcode') return 100;
+    
+    // 計算容器的最小尺寸，保持正方形
+    const scaledWidth = this.getScaledSize(this.element.size.width);
+    const scaledHeight = this.getScaledSize(this.element.size.height);
+    const minSize = Math.min(scaledWidth, scaledHeight);
+    
+    // 減去邊框和內邊距
+    const borderWidth = this.getScaledSize(this.getQRCodeElement().style?.borderWidth || 0);
+    const padding = 8; // 內邊距
+    
+    return Math.max(20, minSize - (borderWidth * 2) - padding);
+  }
+
+  // QR Code 邊距取得，添加調試信息
+  getQRCodeMargin(): number {
+    const qrElement = this.getQRCodeElement();
+    const margin = qrElement.margin || 4;
+    
+    // 調試信息
+    if (this.element.type === 'qrcode') {
+      console.log('🔍 QR Code 邊距調試:', {
+        elementId: this.element.id,
+        margin: margin,
+        qrElement: qrElement
+      });
+    }
+    
+    return margin;
   }
 
   enableTextEdit() {
@@ -473,7 +637,8 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // 新增：視窗resize/scroll時自動更新
-  windowUpdateToolbarPosition = () => {
+  windowUpdateToolbarPosition = (): void => {
+    // 預留給未來的工具列位置更新邏輯
   };
 
   // 裁剪功能方法
@@ -546,7 +711,6 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
   // 裁剪操作：完成
   applyCrop(event: Event): void {
     event.stopPropagation();
-    const mouseEvent = event as MouseEvent;
     this.cropChanged.emit({ id: this.element.id, cropData: { ...this.cropSelection, apply: true } });
     // 通知父元件應用裁剪，並退出裁剪模式
     const customEvent = new CustomEvent('finishCrop', { bubbles: true });
@@ -575,7 +739,7 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
           updates: { zIndex: Math.max(1, this.element.zIndex - 1) }
         });
         break;
-      case 'duplicate':
+      case 'duplicate': {
         // 創建複製的元素
         const duplicatedElement = {
           ...this.element,
@@ -591,6 +755,7 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
           updates: duplicatedElement
         });
         break;
+      }
       case 'delete':
         this.onDeleteElement();
         break;
@@ -673,28 +838,56 @@ export class DraggableElementComponent implements OnInit, OnDestroy, OnChanges {
   }
 
   // 根據標籤 ID 取得對應的圖標
-  getTagIcon(tagId: string): string {
-    const tagIcons: { [key: string]: string } = {
-      'name': 'person',
-      'title': 'work',
-      'phone': 'phone',
-      'address': 'location_on',
-      'company': 'business',
-      'custom': 'edit'
-    };
-    return tagIcons[tagId] || 'label';
+  getTagIcon(tagId: string | undefined): string {
+    if (!tagId || typeof tagId !== 'string') return 'label';
+    
+    const tagIcons = new Map([
+      ['name', 'person'],
+      ['title', 'work'],
+      ['phone', 'phone'],
+      ['address', 'location_on'],
+      ['company', 'business'],
+      ['custom', 'edit']
+    ]);
+    
+    return tagIcons.get(tagId) || 'label';
   }
 
   // 根據標籤 ID 取得對應的標籤名稱
-  getTagLabel(tagId: string): string {
-    const tagLabels: { [key: string]: string } = {
-      'name': '姓名',
-      'title': '職稱',
-      'phone': '電話',
-      'address': '地址',
-      'company': '公司',
-      'custom': '自訂'
-    };
-    return tagLabels[tagId] || '標籤';
+  getTagLabel(tagId: string | undefined): string {
+    if (!tagId || typeof tagId !== 'string') return '標籤';
+    
+    const tagLabels = new Map([
+      ['name', '姓名'],
+      ['title', '職稱'],
+      ['phone', '電話'],
+      ['address', '地址'],
+      ['company', '公司'],
+      ['custom', '自訂']
+    ]);
+    
+    return tagLabels.get(tagId) || '標籤';
+  }
+
+  // 輔助方法：將 blob 轉為 base64
+  private blobToBase64(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  // 處理文件上傳
+  private async handleFileUpload(blob: Blob): Promise<void> {
+    const base64String = await this.blobToBase64(blob);
+    
+    // 建立FormData來上傳文件
+    const formData = new FormData();
+    formData.append('file', blob, 'cropped-image.png');
+    
+    // 這裡可以調用API上傳文件
+    console.log('圖片已轉換為base64:', base64String.substring(0, 50) + '...');
   }
 }

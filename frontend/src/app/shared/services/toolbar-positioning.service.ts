@@ -21,11 +21,11 @@ export class ToolbarPositioningService {
    * @param toolbarHeight 工具列高度（默認60px）
    * @returns 工具列位置座標
    */
-  calculateToolbarPosition(targetElement: HTMLElement, toolbarHeight: number = 60): ToolbarPosition {
+  calculateToolbarPosition(targetElement: HTMLElement, toolbarHeight = 60): ToolbarPosition {
     const rect = targetElement.getBoundingClientRect();
     
     // 水平置中於元素中心
-    let x = rect.left + rect.width / 2;
+    const x = rect.left + rect.width / 2;
 
     // 計算上方位置
     let y = rect.top - toolbarHeight;
@@ -49,8 +49,8 @@ export class ToolbarPositioningService {
   calculateDropdownPosition(
     basePosition: ToolbarPosition, 
     buttonType: 'align' | 'color' | 'size' | 'tag' | 'custom',
-    toolbarHeight: number = 42,
-    gap: number = 2,
+    toolbarHeight = 42,
+    gap = 2,
     customOffset?: number
   ): DropdownPosition {
     const baseX = basePosition.x;

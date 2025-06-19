@@ -4,10 +4,11 @@
   "description": "智慧桌牌系統",
   "main": "index.js",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
+    "build": "cd frontend && npm ci && npm run build",
     "start": "cd frontend && npm start",
-    "install-frontend": "cd frontend && npm install",
-    "build-frontend": "cd frontend && npm run build"
+    "install-frontend": "cd frontend && npm ci",
+    "build-frontend": "cd frontend && npm run build",
+    "vercel-build": "cd frontend && npm ci && npm run build"
   },
   "repository": {
     "type": "git",
@@ -16,7 +17,7 @@
   "author": "chiuweilun1107",
   "license": "MIT",
   "engines": {
-    "node": ">=18.0.0",
+    "node": "18.x",
     "npm": ">=8.0.0"
   }
 } 

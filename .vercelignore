@@ -1,55 +1,16 @@
-# Backend files (只部署前端)
 backend/
 backend-new/
-
-# Node modules (Vercel 會自動安裝)
-**/node_modules/
-frontend/node_modules/
-
-# Development files
-frontend/.angular/
-frontend/dist/
-**/.DS_Store
-
-# Git and development tools
-.git/
-.cursor/
-.specstory/
-.venv/
-
-# Build artifacts
-frontend/coverage/
-**/*.log
-**/*.logs
-**/*.lock
-
-# Environment files
+node_modules/
+*.log
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# IDE files
-**/.vscode/
-**/.idea/
-
-# Temporary files
-**/tmp/
-**/temp/
-**/cache/
-
-# Documentation and guides (可以保留一些必要的文件)
-codingrulesV3.md
-REFACTORING_PROGRESS.md
-FINAL_STATUS_REPORT.md
-create_missing_dtos.sh
-package-for-deployment.sh
-
-# Extra DTO folders (只需要前端)
-BackgroundImages/
-ElementImages/
-Security/
-Templates/
-TextTags/
-Hamastar.SmartNameplate.Application.Contracts/ 
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+obj/
+bin/
+*.suo
+*.user
+*.cache
+*.vs/ 

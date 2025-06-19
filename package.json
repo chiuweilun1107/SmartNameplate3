@@ -1,27 +1,22 @@
 {
-  "name": "smartnameplate3",
-  "version": "3.0.0",
-  "description": "🚀 SmartNameplate 3.0 - ABP Framework 企業級智慧名牌系統",
+  "name": "smart-nameplate",
+  "version": "1.0.0",
+  "description": "智慧桌牌系統",
+  "main": "index.js",
   "scripts": {
-    "build": "cd frontend && npm ci && ng build --configuration production",
-    "start": "cd frontend && npm run start",
-    "dev": "cd frontend && npm run start",
-    "vercel-build": "cd frontend && npm ci && ng build --configuration production"
+    "build": "cd frontend && npm install && npm run build",
+    "start": "cd frontend && npm start",
+    "install-frontend": "cd frontend && npm install",
+    "build-frontend": "cd frontend && npm run build"
   },
-  "keywords": [
-    "smartnameplate",
-    "angular",
-    "abp-framework",
-    "enterprise",
-    "nameplate"
-  ],
-  "author": "chiuweilun1107",
-  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/chiuweilun1107/SmartNameplate3.git"
   },
+  "author": "chiuweilun1107",
+  "license": "MIT",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 } 

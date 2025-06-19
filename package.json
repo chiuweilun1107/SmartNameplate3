@@ -3,10 +3,10 @@
   "version": "3.0.0",
   "description": "🚀 SmartNameplate 3.0 - ABP Framework 企業級智慧名牌系統",
   "scripts": {
-    "build": "cd frontend && npm ci && npm run build --configuration production",
+    "build": "cd frontend && npm ci && ng build --configuration production",
     "start": "cd frontend && npm run start",
     "dev": "cd frontend && npm run start",
-    "vercel-build": "cd frontend && npm ci && npm run build --configuration production"
+    "vercel-build": "cd frontend && npm ci && ng build --configuration production"
   },
   "keywords": [
     "smartnameplate",

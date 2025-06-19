@@ -2,7 +2,7 @@
   "version": 2,
   "name": "smartnameplate3",
   "framework": "angular",
-  "buildCommand": "cd frontend && npm ci && npm run build --configuration production",
+  "buildCommand": "cd frontend && npm ci && ng build --configuration production",
   "outputDirectory": "frontend/dist/smart-nameplate",
   "installCommand": "cd frontend && npm ci",
   "devCommand": "cd frontend && npm run start",

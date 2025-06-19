@@ -376,3 +376,4 @@ PublishProfiles/
 *.pubxml
 *.pubxml.user
 *.publishsettings 
+.vercel
